@@ -5,7 +5,7 @@ import base64
 import json
 import os
 
-from six import itervalues, iteritems
+from six import itervalues
 
 from openmdao.devtools.html_utils import read_files, write_div, head_and_body, write_script, \
     write_style
@@ -16,6 +16,18 @@ _CHAR_SET = "utf-8"  # HTML character set
 # Toolbar settings
 _FONT_SIZES = [8, 9, 10, 11, 12, 13, 14]
 _MODEL_HEIGHTS = [600, 650, 700, 750, 800, 850, 900, 950, 1000, 2000, 3000, 4000]
+
+_HTML_TMP = (
+    '<div style="margin-top:5px;">'
+    '    <input type="text" id="awesompleteId" size="80" />'
+    '    <button class="myButton" id="searchButtonId" title="Search"><i class="icon-search"></i></button>'
+    '    <label id="searchCountId" style="display:inline-block;width:120px"></label>'
+    '</div>'
+    '<!--<select id="outputNamingSelect" onchange="OutputNameSelectChange()" style="display:none">-->'
+    '<div id="currentPathId" class="path_string" style="display:none"></div>'
+    '<div id="d3_content_div"></div>'
+    '<div id="connectionId"></div>'
+)
 
 
 def write_html(outfile, source_data=None, data_file=None, embeddable=False, toolbar=True):
@@ -75,6 +87,8 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         raise ValueError(msg.format(type(source_data)))
 
     # grab the style
+
+    # put all style and JS into index
     styles = read_files(('fontello', 'xdsm'), style_dir, 'css')
     if toolbar:
         problem_viewer_dir = os.path.join(os.path.dirname(main_dir), "problem_viewer", "visualization")
@@ -84,19 +98,19 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         styles.update(read_files(('partition_tree', 'awesomplete'), problem_viewer_style__dir, 'css'))
         with open(os.path.join(problem_viewer_style__dir, "fontello.woff"), "rb") as f:
             encoded_font = str(base64.b64encode(f.read()).decode("ascii"))
-        styles['fontello2'] = encoded_font
         src_names = 'constants', 'draw', 'legend', 'modal', 'ptN2', 'search', 'svg'
         srcs = read_files(src_names, problem_viewer_src_dir, 'js')
         scripts = '\n\n'.join([write_script(code, indent=4) for code in itervalues(srcs)])
-    styles_elem = write_style(content='\n\n'.join(itervalues(styles)))
-
-    # put all style and JS into index
-    if toolbar:  # OpenMDAO diagram viewer toolbar
-        toolbar_div = '\n\n'.join(["{{scripts}}", "{{title}}", "{{toolbar}}", "{{help}}"])
+        toolbar_div = write_div(content=["{{scripts}}", "{{title}}", "{{toolbar}}", "{{help}}",
+                                         "{{magic}}"],
+                                uid="ptN2ContentDivId")
     else:  # Default XDSMjs toolbar
         toolbar_div = write_div(attrs={'class': 'xdsm-toolbar'})
+    styles_elem = write_style(content='\n\n'.join(itervalues(styles)))
     xdsm_div = write_div(attrs=xdsm_attrs)
     body = '\n\n'.join([toolbar_div, xdsm_div])
+    if toolbar:
+        body = write_div(content=body, uid="all_pt_n2_content_div")
 
     if embeddable:
         index = '\n\n'.join([styles_elem, xdsm_bundle, body])
@@ -164,13 +178,14 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         group5.add_button("Help", uid="helpButtonId", content="icon-help")
 
         # Help
-        help_txt = ('Left clicking on a node in the partition tree will navigate to that node. '
-                    'Right clicking on a node in the model hierarchy will collapse/uncollapse it. '
-                    'A click on any element in the N^2 diagram will allow those arrows to persist.')
+        help_txt = ('XDSM help.')
 
-        h.add_help(help_txt, footer="OpenMDAO Model Hierarchy and N^2 diagram")
+        h.add_help(help_txt, footer="OpenMDAO XDSM diagram")
 
-        h.insert("{{scripts}}", scripts)
+        h.insert("{{magic}}", _HTML_TMP)
+        if toolbar:
+            h.insert("{{scripts}}", scripts)
+            h.insert('{{fontello}}', encoded_font)
 
         # Write output file
         h.write(outfile)
