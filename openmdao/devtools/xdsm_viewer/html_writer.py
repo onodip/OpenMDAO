@@ -89,12 +89,12 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
     # grab the style
 
     # put all style and JS into index
-    styles = read_files(('fontello', 'xdsm'), style_dir, 'css')
     if toolbar:
         problem_viewer_dir = os.path.join(os.path.dirname(main_dir), "problem_viewer", "visualization")
         problem_viewer_style__dir = os.path.join(problem_viewer_dir, "style")
         problem_viewer_src_dir = os.path.join(problem_viewer_dir, "src")
 
+        styles = read_files(('xdsm',), style_dir, 'css')
         styles.update(read_files(('partition_tree', 'awesomplete'), problem_viewer_style__dir, 'css'))
         with open(os.path.join(problem_viewer_style__dir, "fontello.woff"), "rb") as f:
             encoded_font = str(base64.b64encode(f.read()).decode("ascii"))
@@ -105,6 +105,7 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
                                          "{{magic}}"],
                                 uid="ptN2ContentDivId")
     else:  # Default XDSMjs toolbar
+        styles = read_files(('fontello', 'xdsm'), style_dir, 'css')
         toolbar_div = write_div(attrs={'class': 'xdsm-toolbar'})
     styles_elem = write_style(content='\n\n'.join(itervalues(styles)))
     xdsm_div = write_div(attrs=xdsm_attrs)
@@ -136,12 +137,12 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         # Toolbar
         toolbar = h.toolbar
         group1 = toolbar.add_button_group()
-        group1.add_button("Return To Root", uid="returnToRootButtonId", disabled="disabled",
+        group1.add_button("Return To Root", uid="returnToRootButtonId",
                           content="icon-home")
-        group1.add_button("Back", uid="backButtonId", disabled="disabled", content="icon-left-big")
-        group1.add_button("Forward", uid="forwardButtonId", disabled="disabled",
+        group1.add_button("Back", uid="backButtonId", content="icon-left-big")
+        group1.add_button("Forward", uid="forwardButtonId",
                           content="icon-right-big")
-        group1.add_button("Up One Level", uid="upOneLevelButtonId", disabled="disabled",
+        group1.add_button("Up One Level", uid="upOneLevelButtonId",
                           content="icon-up-big")
 
         group2 = toolbar.add_button_group()
