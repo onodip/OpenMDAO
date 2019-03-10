@@ -324,7 +324,8 @@ class Toolbar(UIElement):
             str
         """
         content = '\n\n'.join([item.write() for item in self.items])
-        return write_div(content=content, cls="toolbar", uid="toolbarDiv")
+        toolbar = write_div(content=content, cls="toolbar", uid="toolbarDiv")
+        return write_div(content=toolbar, uid="toolbarLoc")
 
 
 class TemplateWriter(object):

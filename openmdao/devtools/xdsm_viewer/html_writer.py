@@ -1,11 +1,11 @@
 """
 HTML file writing to create standalone XDSMjs output file.
 """
-
+import base64
 import json
 import os
 
-from six import itervalues
+from six import itervalues, iteritems
 
 from openmdao.devtools.html_utils import read_files, write_div, head_and_body, write_script, \
     write_style
@@ -13,8 +13,12 @@ from openmdao.devtools.html_utils import read_files, write_div, head_and_body, w
 _DEFAULT_JSON_FILE = "xdsm.json"  # Used as default name if data is not embedded
 _CHAR_SET = "utf-8"  # HTML character set
 
+# Toolbar settings
+_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14]
+_MODEL_HEIGHTS = [600, 650, 700, 750, 800, 850, 900, 950, 1000, 2000, 3000, 4000]
 
-def write_html(outfile, source_data=None, data_file=None, embeddable=False):
+
+def write_html(outfile, source_data=None, data_file=None, embeddable=False, toolbar=True):
     """
     Writes XDSMjs HTML output file, with style and script files embedded.
 
@@ -35,11 +39,13 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False):
     embeddable : bool, optional
         If True, gives a single HTML file that doesn't have the <html>, <DOCTYPE>, <body>
         and <head> tags. If False, gives a single, standalone HTML file for viewing.
+    toolbar : bool
+        Add diagram viewer toolbar
     """
 
     # directories
     main_dir = os.path.dirname(os.path.abspath(__file__))
-    code_dir = os.path.join(main_dir, 'XDSMjs')
+    code_dir = os.path.join(main_dir, "XDSMjs")
     build_dir = os.path.join(code_dir, "build")
     style_dir = code_dir  # CSS
 
@@ -70,10 +76,25 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False):
 
     # grab the style
     styles = read_files(('fontello', 'xdsm'), style_dir, 'css')
+    if toolbar:
+        problem_viewer_dir = os.path.join(os.path.dirname(main_dir), "problem_viewer", "visualization")
+        problem_viewer_style__dir = os.path.join(problem_viewer_dir, "style")
+        problem_viewer_src_dir = os.path.join(problem_viewer_dir, "src")
+
+        styles.update(read_files(('partition_tree', 'awesomplete'), problem_viewer_style__dir, 'css'))
+        with open(os.path.join(problem_viewer_style__dir, "fontello.woff"), "rb") as f:
+            encoded_font = str(base64.b64encode(f.read()).decode("ascii"))
+        styles['fontello2'] = encoded_font
+        src_names = 'constants', 'draw', 'legend', 'modal', 'ptN2', 'search', 'svg'
+        srcs = read_files(src_names, problem_viewer_src_dir, 'js')
+        scripts = '\n\n'.join([write_script(code, indent=4) for code in itervalues(srcs)])
     styles_elem = write_style(content='\n\n'.join(itervalues(styles)))
 
     # put all style and JS into index
-    toolbar_div = write_div(attrs={'class': 'xdsm-toolbar'})
+    if toolbar:  # OpenMDAO diagram viewer toolbar
+        toolbar_div = '\n\n'.join(["{{scripts}}", "{{title}}", "{{toolbar}}", "{{help}}"])
+    else:  # Default XDSMjs toolbar
+        toolbar_div = write_div(attrs={'class': 'xdsm-toolbar'})
     xdsm_div = write_div(attrs=xdsm_attrs)
     body = '\n\n'.join([toolbar_div, xdsm_div])
 
@@ -89,6 +110,70 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False):
     # Embed style, scripts and data to HTML
     with open(outfile, 'w') as f:
         f.write(index)
+
+    # Replace references in the file
+    if toolbar:
+        from openmdao.devtools.html_utils import DiagramWriter
+
+        h = DiagramWriter(filename=outfile,
+                          title="OpenMDAO XDSM diagram.",
+                          styles=styles, embeddable=True)
+
+        # Toolbar
+        toolbar = h.toolbar
+        group1 = toolbar.add_button_group()
+        group1.add_button("Return To Root", uid="returnToRootButtonId", disabled="disabled",
+                          content="icon-home")
+        group1.add_button("Back", uid="backButtonId", disabled="disabled", content="icon-left-big")
+        group1.add_button("Forward", uid="forwardButtonId", disabled="disabled",
+                          content="icon-right-big")
+        group1.add_button("Up One Level", uid="upOneLevelButtonId", disabled="disabled",
+                          content="icon-up-big")
+
+        group2 = toolbar.add_button_group()
+        group2.add_button("Uncollapse In View Only", uid="uncollapseInViewButtonId",
+                          content="icon-resize-full")
+        group2.add_button("Uncollapse All", uid="uncollapseAllButtonId",
+                          content="icon-resize-full bigger-font")
+        group2.add_button("Collapse Outputs In View Only", uid="collapseInViewButtonId",
+                          content="icon-resize-small")
+        group2.add_button("Collapse All Outputs", uid="collapseAllButtonId",
+                          content="icon-resize-small bigger-font")
+        group2.add_dropdown("Collapse Depth", button_content="icon-sort-number-up",
+                            uid="idCollapseDepthDiv")
+
+        group3 = toolbar.add_button_group()
+        group3.add_button("Clear Arrows and Connections", uid="clearArrowsAndConnectsButtonId",
+                          content="icon-eraser")
+        group3.add_button("Show Path", uid="showCurrentPathButtonId", content="icon-terminal")
+        group3.add_button("Show Legend", uid="showLegendButtonId", content="icon-map-signs")
+        group3.add_button("Show Params", uid="showParamsButtonId", content="icon-exchange")
+        group3.add_button("Toggle Solver Names", uid="toggleSolverNamesButtonId",
+                          content="icon-minus")
+        group3.add_dropdown("Font Size", id_naming="idFontSize", options=_FONT_SIZES,
+                            option_formatter=lambda x: '{}px'.format(x),
+                            button_content="icon-text-height")
+        group3.add_dropdown("Vertically Resize", id_naming="idVerticalResize",
+                            options=_MODEL_HEIGHTS, option_formatter=lambda x: '{}px'.format(x),
+                            button_content="icon-resize-vertical", header="Model Height")
+
+        group4 = toolbar.add_button_group()
+        group4.add_button("Save SVG", uid="saveSvgButtonId", content="icon-floppy")
+
+        group5 = toolbar.add_button_group()
+        group5.add_button("Help", uid="helpButtonId", content="icon-help")
+
+        # Help
+        help_txt = ('Left clicking on a node in the partition tree will navigate to that node. '
+                    'Right clicking on a node in the model hierarchy will collapse/uncollapse it. '
+                    'A click on any element in the N^2 diagram will allow those arrows to persist.')
+
+        h.add_help(help_txt, footer="OpenMDAO Model Hierarchy and N^2 diagram")
+
+        h.insert("{{scripts}}", scripts)
+
+        # Write output file
+        h.write(outfile)
 
 
 if __name__ == '__main__':
