@@ -101,7 +101,7 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         src_names = 'constants', 'draw', 'legend', 'modal', 'ptN2', 'search', 'svg'
         srcs = read_files(src_names, problem_viewer_src_dir, 'js')
         scripts = '\n\n'.join([write_script(code, indent=4) for code in itervalues(srcs)])
-        toolbar_div = write_div(content=["{{scripts}}", "{{title}}", "{{toolbar}}", "{{help}}",
+        toolbar_div = write_div(content=["{{title}}", "{{toolbar}}", "{{help}}",
                                          "{{magic}}"],
                                 uid="ptN2ContentDivId")
     else:  # Default XDSMjs toolbar
@@ -111,7 +111,7 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
     xdsm_div = write_div(attrs=xdsm_attrs)
     body = '\n\n'.join([toolbar_div, xdsm_div])
     if toolbar:
-        body = write_div(content=body, uid="all_pt_n2_content_div")
+        body = '\n\n'.join(["{{scripts}}", write_div(content=body, uid="all_pt_n2_content_div")])
 
     if embeddable:
         index = '\n\n'.join([styles_elem, xdsm_bundle, body])
@@ -185,9 +185,9 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         h.add_help(help_txt, footer="OpenMDAO XDSM diagram")
 
         h.insert("{{magic}}", _HTML_TMP)
-        if toolbar:
-            h.insert("{{scripts}}", scripts)
-            h.insert('{{fontello}}', encoded_font)
+        h.insert("{{scripts}}", scripts)
+        h.insert('{{fontello}}', encoded_font)
+        h.insert("{{draw_potential_connections}}", str(True).lower())  # FIXME remove when process conn button implemented
 
         # Write output file
         h.write(outfile)
