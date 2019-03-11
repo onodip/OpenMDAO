@@ -136,15 +136,16 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
 
         # Toolbar
         toolbar = h.toolbar
+        # Button group for animation controls
         group1 = toolbar.add_button_group()
-        group1.add_button("Return To Root", uid="returnToRootButtonId",
+        group1.add_button("Start", uid="returnToRootButtonId",
                           content="icon-home")
-        group1.add_button("Back", uid="backButtonId", content="icon-left-big")
-        group1.add_button("Forward", uid="forwardButtonId",
+        group1.add_button("Steop", uid="backButtonId", content="icon-left-big")
+        group1.add_button("Next step", uid="forwardButtonId",
                           content="icon-right-big")
-        group1.add_button("Up One Level", uid="upOneLevelButtonId",
+        group1.add_button("Previous step", uid="upOneLevelButtonId",
                           content="icon-up-big")
-
+        # Button group for style formatting
         group2 = toolbar.add_button_group()
         group2.add_button("Uncollapse In View Only", uid="uncollapseInViewButtonId",
                           content="icon-resize-full")
@@ -171,10 +172,10 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         group3.add_dropdown("Vertically Resize", id_naming="idVerticalResize",
                             options=_MODEL_HEIGHTS, option_formatter=lambda x: '{}px'.format(x),
                             button_content="icon-resize-vertical", header="Model Height")
-
+        # Button group for saving
         group4 = toolbar.add_button_group()
         group4.add_button("Save SVG", uid="saveSvgButtonId", content="icon-floppy")
-
+        # Button group for help
         group5 = toolbar.add_button_group()
         group5.add_button("Help", uid="helpButtonId", content="icon-help")
 
