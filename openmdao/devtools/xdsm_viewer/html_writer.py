@@ -138,13 +138,12 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         toolbar = h.toolbar
         # Button group for animation controls
         group1 = toolbar.add_button_group()
-        group1.add_button("Start", uid="returnToRootButtonId",
-                          content="icon-home")
-        group1.add_button("Steop", uid="backButtonId", content="icon-left-big")
-        group1.add_button("Next step", uid="forwardButtonId",
+        group1.add_button("Start", uid="start", content="icon-home")
+        group1.add_button("Stop", uid="backButtonId", content="icon-up-big")
+        group1.add_button("Next step", uid="step-next",
                           content="icon-right-big")
-        group1.add_button("Previous step", uid="upOneLevelButtonId",
-                          content="icon-up-big")
+        group1.add_button("Previous step", uid="step-prev",
+                          content="icon-left-big")
         # Button group for style formatting
         group2 = toolbar.add_button_group()
         group2.add_button("Uncollapse In View Only", uid="uncollapseInViewButtonId",
