@@ -216,6 +216,19 @@ def add_title(txt, heading='h1', align='center'):
     return write_div(content=title, uid="maintitle", attrs={'style': style})
 
 
+def write_comment(txt, lang='html'):
+    lang = lang.lower()
+    if lang == 'html':
+        return '<!-- {} -->'.format(txt)
+    elif lang == 'css':
+        return '/* {} */'.format(txt)
+    elif lang == 'javascript':
+        return '// {}'.format(txt)
+    else:
+        msg = 'Invalid input "{}" for language. Choose from "html", "css", "javascript".'
+        raise ValueError(msg.format(lang))
+
+
 class UIElement(object):
     """Abstract class for user interface elements."""
 
