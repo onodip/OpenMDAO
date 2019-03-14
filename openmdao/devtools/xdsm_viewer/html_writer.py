@@ -5,7 +5,7 @@ import base64
 import json
 import os
 
-from six import itervalues
+from six import itervalues, iteritems
 
 from openmdao.devtools.html_utils import read_files, write_div, head_and_body, write_script, \
     write_style
@@ -28,6 +28,8 @@ _HTML_TMP = (
     '<div id="d3_content_div"></div>'
     '<div id="connectionId"></div>'
 )
+
+_IND = 4  # HTML indentation (spaces)
 
 
 def write_html(outfile, source_data=None, data_file=None, embeddable=False, toolbar=True):
@@ -93,14 +95,17 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
         problem_viewer_dir = os.path.join(os.path.dirname(main_dir), "problem_viewer", "visualization")
         problem_viewer_style__dir = os.path.join(problem_viewer_dir, "style")
         problem_viewer_src_dir = os.path.join(problem_viewer_dir, "src")
+        libs_dir = os.path.join(problem_viewer_dir, "libs")
 
         styles = read_files(('xdsm',), style_dir, 'css')
         styles.update(read_files(('partition_tree', 'awesomplete'), problem_viewer_style__dir, 'css'))
         with open(os.path.join(problem_viewer_style__dir, "fontello.woff"), "rb") as f:
             encoded_font = str(base64.b64encode(f.read()).decode("ascii"))
+        lib_dct = {'d3': 'd3.v4.min', 'awesomplete': 'awesomplete', 'vk_beautify': 'vkBeautify'}
+        libs = read_files(itervalues(lib_dct), libs_dir, 'js')
         src_names = 'constants', 'draw', 'legend', 'modal', 'ptN2', 'search', 'svg'
         srcs = read_files(src_names, problem_viewer_src_dir, 'js')
-        scripts = '\n\n'.join([write_script(code, indent=4) for code in itervalues(srcs)])
+        scripts = '\n\n'.join([write_script(code, indent=_IND) for code in itervalues(srcs)])
         toolbar_div = write_div(content=["{{title}}", "{{toolbar}}", "{{help}}",
                                          "{{magic}}"],
                                 uid="ptN2ContentDivId")
@@ -111,7 +116,8 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
     xdsm_div = write_div(attrs=xdsm_attrs)
     body = '\n\n'.join([toolbar_div, xdsm_div])
     if toolbar:
-        body = '\n\n'.join(["{{scripts}}", write_div(content=body, uid="all_pt_n2_content_div")])
+        lib_names = '\n'.join(["{d3_lib}", "{awesomplete_lib}", "{vk_beautify_lib}", "{{scripts}}"])
+        body = '\n\n'.join([lib_names, write_div(content=body, uid="all_pt_n2_content_div")])
 
     if embeddable:
         index = '\n\n'.join([styles_elem, xdsm_bundle, body])
@@ -185,6 +191,8 @@ def write_html(outfile, source_data=None, data_file=None, embeddable=False, tool
 
         h.insert("{{magic}}", _HTML_TMP)
         h.insert("{{scripts}}", scripts)
+        for k, v in iteritems(lib_dct):
+            h.insert('{{{}_lib}}'.format(k), write_script(libs[v], indent=_IND))
         h.insert('{{fontello}}', encoded_font)
         h.insert("{{draw_potential_connections}}", str(True).lower())  # FIXME remove when process conn button implemented
 
