@@ -43,6 +43,12 @@ def _print_violations(unknowns, lower, upper):
 
 class LineSearchSolver(NonlinearSolver):
 
+    def __init__(self, **kwargs):
+        super(LineSearchSolver, self).__init__(**kwargs)
+
+        # Parent solver sets this to control whether to solve subsystems.
+        self._do_subsolve = False
+
     @staticmethod
     def _enforce_bound(u, du, alpha, lower, upper, bound_enforcement):
         if bound_enforcement == 'vector':
@@ -68,20 +74,6 @@ class BoundsEnforceLS(LineSearchSolver):
     """
 
     SOLVER = 'LS: BCHK'
-
-    def __init__(self, **kwargs):
-        """
-        Initialize all attributes.
-
-        Parameters
-        ----------
-        **kwargs : dict
-            Options dictionary.
-        """
-        super(BoundsEnforceLS, self).__init__(**kwargs)
-
-        # Parent solver sets this to control whether to solve subsystems.
-        self._do_subsolve = False
 
     def _declare_options(self):
         """
@@ -169,9 +161,6 @@ class ArmijoGoldsteinLS(LineSearchSolver):
         """
         super(ArmijoGoldsteinLS, self).__init__(**kwargs)
 
-        # Parent solver sets this to control whether to solve subsystems.
-        self._do_subsolve = False
-
         self._analysis_error_raised = False
 
     def _iter_initialize(self):
@@ -247,7 +236,7 @@ class ArmijoGoldsteinLS(LineSearchSolver):
                   "to the bound, and then the backtracking follows the wall - i.e., the "
                   "violating entries do not change during the line search."))
         opt.declare('rho', default=0.5, lower=0.0, upper=1.0, desc="Backtracking multiplier.")
-        opt.declare('alpha', default=1.0, desc="Initial line search step.")
+        opt.declare('alpha', default=1.0, lower=0.0, desc="Initial line search step.")
         opt.declare('print_bound_enforce', default=False,
                     desc="Set to True to print out names and values of variables that are pulled "
                     "back to their bounds.")
@@ -259,7 +248,6 @@ class ArmijoGoldsteinLS(LineSearchSolver):
         Perform the operations in the iteration loop.
         """
         self._analysis_error_raised = False
-        system = self._system
 
         # Hybrid newton support.
         if self._do_subsolve and self._iter_count > 0:
@@ -312,73 +300,6 @@ class ArmijoGoldsteinLS(LineSearchSolver):
                 u.add_scal_vec(self.alpha * (rho-1), du)  # step to the new point on line search
                 if self._iter_count > 0:
                     self.alpha *= rho  # reduce step length
-
-                cache = self._solver_info.save_cache()
-
-                try:
-                    self._single_iteration()
-                    self._iter_count += 1
-
-                    norm = self._iter_get_norm()
-
-                    # With solvers, we want to report the norm AFTER
-                    # the iter_execute call, but the i_e call needs to
-                    # be wrapped in the with for stack purposes.
-                    rec.abs = norm
-                    rec.rel = norm / norm0
-
-                except AnalysisError as err:
-                    self._solver_info.restore_cache(cache)
-                    self._iter_count += 1
-
-                    if self.options['retry_on_analysis_error']:
-                        self._analysis_error_raised = True
-                        rec.abs = np.nan
-                        rec.rel = np.nan
-
-                    else:
-                        exc = sys.exc_info()
-                        reraise(*exc)
-
-            # self._mpi_print(self._iter_count, norm, norm / norm0)
-            self._mpi_print(self._iter_count, norm, self.alpha)
-
-
-class StrongWolfeLS(ArmijoGoldsteinLS):
-
-    SOLVER = 'LS: Wolfe'
-
-    def _declare_options(self):
-        super(StrongWolfeLS, self)._declare_options()
-        opt = self.options
-        opt.declare('c2', default=0.9, desc="")
-
-    def _solve(self):
-        """
-        Run the iterative solver.
-        """
-        maxiter = self.options['maxiter']
-        atol = self.options['atol']
-        rtol = self.options['rtol']
-        c = self.options['c']
-
-        system = self._system
-        u = system._outputs
-        du = system._vectors['output']['linear']
-
-        self._iter_count = 0
-        norm0, norm = self._iter_initialize()
-        self._norm0 = norm0
-
-        # Further backtracking if needed.
-        while (self._iter_count < maxiter and
-               ((norm > norm0 - c * self.alpha * norm0) or self._analysis_error_raised)):
-            with Recording('StrongWolfeLSLS', self._iter_count, self) as rec:
-
-                u.add_scal_vec(-self.alpha, du)
-                if self._iter_count > 0:
-                    self.alpha *= self.options['rho']
-                u.add_scal_vec(self.alpha, du)
 
                 cache = self._solver_info.save_cache()
 
