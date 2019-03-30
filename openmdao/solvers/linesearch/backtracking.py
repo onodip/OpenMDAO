@@ -41,7 +41,18 @@ def _print_violations(unknowns, lower, upper):
             print("  Lower:", lower._views_flat[name], '\n')
 
 
-class BoundsEnforceLS(NonlinearSolver):
+class LineSearchSolver(NonlinearSolver):
+
+    def _enforce_bound(self, u, du, alpha, lower, upper, bound_enforcement):
+        if bound_enforcement == 'vector':
+            u._enforce_bounds_vector(du, alpha, lower, upper)
+        elif bound_enforcement == 'scalar':
+            u._enforce_bounds_scalar(du, alpha, lower, upper)
+        elif bound_enforcement == 'wall':
+            u._enforce_bounds_wall(du, alpha, lower, upper)
+
+
+class BoundsEnforceLS(LineSearchSolver):
     """
     Bounds enforcement only.
 
@@ -88,10 +99,8 @@ class BoundsEnforceLS(NonlinearSolver):
 
         # Remove unused options from base options here, so that users
         # attempting to set them will get KeyErrors.
-        opt.undeclare("atol")
-        opt.undeclare("rtol")
-        opt.undeclare("maxiter")
-        opt.undeclare("err_on_maxiter")
+        for unused_option in ("atol", "rtol", "maxiter", "err_on_maxiter"):
+            opt.undeclare(unused_option)
 
     def _solve(self):
         """
@@ -114,13 +123,12 @@ class BoundsEnforceLS(NonlinearSolver):
         if self.options['print_bound_enforce']:
             _print_violations(u, system._lower_bounds, system._upper_bounds)
 
+        # Bounds
+        lower = system._lower_bounds
+        upper = system._upper_bounds
+
         with Recording('BoundsEnforceLS', self._iter_count, self) as rec:
-            if self.options['bound_enforcement'] == 'vector':
-                u._enforce_bounds_vector(du, 1.0, system._lower_bounds, system._upper_bounds)
-            elif self.options['bound_enforcement'] == 'scalar':
-                u._enforce_bounds_scalar(du, 1.0, system._lower_bounds, system._upper_bounds)
-            elif self.options['bound_enforcement'] == 'wall':
-                u._enforce_bounds_wall(du, 1.0, system._lower_bounds, system._upper_bounds)
+            self._enforce_bound(u, du, 1.0, lower, upper, self.options['bound_enforcement'])
 
             self._run_apply()
             norm = self._iter_get_norm()
@@ -134,7 +142,7 @@ class BoundsEnforceLS(NonlinearSolver):
         self._mpi_print(self._iter_count, norm, norm / norm0)
 
 
-class ArmijoGoldsteinLS(NonlinearSolver):
+class ArmijoGoldsteinLS(LineSearchSolver):
     """
     Backtracking line search that terminates using the Armijo-Goldstein condition..
 
@@ -188,17 +196,16 @@ class ArmijoGoldsteinLS(NonlinearSolver):
         if norm0 == 0.0:
             norm0 = 1.0
 
+        # Bounds
+        lower = system._lower_bounds
+        upper = system._upper_bounds
+
         u.add_scal_vec(self.alpha, du)
 
         if self.options['print_bound_enforce']:
-            _print_violations(u, system._lower_bounds, system._upper_bounds)
+            _print_violations(u, lower, upper)
 
-        if self.options['bound_enforcement'] == 'vector':
-            u._enforce_bounds_vector(du, self.alpha, system._lower_bounds, system._upper_bounds)
-        elif self.options['bound_enforcement'] == 'scalar':
-            u._enforce_bounds_scalar(du, self.alpha, system._lower_bounds, system._upper_bounds)
-        elif self.options['bound_enforcement'] == 'wall':
-            u._enforce_bounds_wall(du, self.alpha, system._lower_bounds, system._upper_bounds)
+        self._enforce_bound(u, du, self.alpha, lower, upper, self.options['bound_enforcement'])
 
         try:
             cache = self._solver_info.save_cache()
@@ -232,12 +239,12 @@ class ArmijoGoldsteinLS(NonlinearSolver):
                     "termination criterion.")
         opt.declare(
             'bound_enforcement', default='vector', values=['vector', 'scalar', 'wall'],
-            desc="If this is set to 'vector', the entire vector is backtracked together " +
-                 "when a bound is violated. If this is set to 'scalar', only the violating " +
-                 "entries are set to the bound and then the backtracking occurs on the vector " +
-                 "as a whole. If this is set to 'wall', only the violating entries are set " +
-                 "to the bound, and then the backtracking follows the wall - i.e., the " +
-                 "violating entries do not change during the line search.")
+            desc=("If this is set to 'vector', the entire vector is backtracked together "
+                  "when a bound is violated. If this is set to 'scalar', only the violating "
+                  "entries are set to the bound and then the backtracking occurs on the vector "
+                  "as a whole. If this is set to 'wall', only the violating entries are set "
+                  "to the bound, and then the backtracking follows the wall - i.e., the "
+                  "violating entries do not change during the line search."))
         opt.declare('rho', default=0.5, lower=0.0, upper=1.0, desc="Backtracking multiplier.")
         opt.declare('alpha', default=1.0, desc="Initial line search step.")
         opt.declare('print_bound_enforce', default=False,
@@ -299,6 +306,73 @@ class ArmijoGoldsteinLS(NonlinearSolver):
         while (self._iter_count < maxiter and
                ((norm > norm0 - c * self.alpha * norm0) or self._analysis_error_raised)):
             with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
+
+                u.add_scal_vec(-self.alpha, du)
+                if self._iter_count > 0:
+                    self.alpha *= self.options['rho']
+                u.add_scal_vec(self.alpha, du)
+
+                cache = self._solver_info.save_cache()
+
+                try:
+                    self._single_iteration()
+                    self._iter_count += 1
+
+                    norm = self._iter_get_norm()
+
+                    # With solvers, we want to report the norm AFTER
+                    # the iter_execute call, but the i_e call needs to
+                    # be wrapped in the with for stack purposes.
+                    rec.abs = norm
+                    rec.rel = norm / norm0
+
+                except AnalysisError as err:
+                    self._solver_info.restore_cache(cache)
+                    self._iter_count += 1
+
+                    if self.options['retry_on_analysis_error']:
+                        self._analysis_error_raised = True
+                        rec.abs = np.nan
+                        rec.rel = np.nan
+
+                    else:
+                        exc = sys.exc_info()
+                        reraise(*exc)
+
+            # self._mpi_print(self._iter_count, norm, norm / norm0)
+            self._mpi_print(self._iter_count, norm, self.alpha)
+
+
+class StrongWolfeLS(ArmijoGoldsteinLS):
+
+    SOLVER = 'LS: Wolfe'
+
+    def _declare_options(self):
+        super(StrongWolfeLS, self)._declare_options()
+        opt = self.options
+        opt.declare('c2', default=0.9, desc="")
+
+    def _solve(self):
+        """
+        Run the iterative solver.
+        """
+        maxiter = self.options['maxiter']
+        atol = self.options['atol']
+        rtol = self.options['rtol']
+        c = self.options['c']
+
+        system = self._system
+        u = system._outputs
+        du = system._vectors['output']['linear']
+
+        self._iter_count = 0
+        norm0, norm = self._iter_initialize()
+        self._norm0 = norm0
+
+        # Further backtracking if needed.
+        while (self._iter_count < maxiter and
+               ((norm > norm0 - c * self.alpha * norm0) or self._analysis_error_raised)):
+            with Recording('StrongWolfeLSLS', self._iter_count, self) as rec:
 
                 u.add_scal_vec(-self.alpha, du)
                 if self._iter_count > 0:
