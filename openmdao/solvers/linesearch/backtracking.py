@@ -42,6 +42,13 @@ def _print_violations(unknowns, lower, upper):
 
 
 class LineSearchSolver(NonlinearSolver):
+    """
+    Attributes
+    ----------
+    _do_subsolve : bool
+        Flag used by parent solver to tell the line search whether to solve subsystems while
+        backtracking.
+    """
 
     def __init__(self, **kwargs):
         super(LineSearchSolver, self).__init__(**kwargs)
@@ -58,6 +65,16 @@ class LineSearchSolver(NonlinearSolver):
         elif bound_enforcement == 'wall':
             u._enforce_bounds_wall(du, alpha, lower, upper)
 
+    def _declare_options(self):
+        """
+        Declare options before kwargs are processed in the init method.
+        """
+        super(LineSearchSolver, self)._declare_options()
+        opt = self.options
+        opt.declare('print_bound_enforce', default=False,
+                    desc="Set to True to print out names and values of variables that are pulled "
+                    "back to their bounds.")
+
 
 class BoundsEnforceLS(LineSearchSolver):
     """
@@ -65,12 +82,6 @@ class BoundsEnforceLS(LineSearchSolver):
 
     Not so much a linesearch; just check the bounds and if they are violated, then pull back to a
     non-violating point and evaluate.
-
-    Attributes
-    ----------
-    _do_subsolve : bool
-        Flag used by parent solver to tell the line search whether to solve subsystems while
-        backtracking.
     """
 
     SOLVER = 'LS: BCHK'
@@ -86,9 +97,6 @@ class BoundsEnforceLS(LineSearchSolver):
             desc="If this is set to 'vector', then the output vector is backtracked to the "
             "first point where violation occured. If it is set to 'scalar' or 'wall', then only "
             "the violated variables are backtracked to their point of violation.")
-        opt.declare('print_bound_enforce', default=False,
-                    desc="Set to True to print out names and values of variables that are pulled "
-                    "back to their bounds.")
 
         # Remove unused options from base options here, so that users
         # attempting to set them will get KeyErrors.
@@ -237,9 +245,6 @@ class ArmijoGoldsteinLS(LineSearchSolver):
                   "violating entries do not change during the line search."))
         opt.declare('rho', default=0.5, lower=0.0, upper=1.0, desc="Backtracking multiplier.")
         opt.declare('alpha', default=1.0, lower=0.0, desc="Initial line search step.")
-        opt.declare('print_bound_enforce', default=False,
-                    desc="Set to True to print out names and values of variables that are pulled "
-                    "back to their bounds.")
         opt.declare('retry_on_analysis_error', default=True,
                     desc="Backtrack and retry if an AnalysisError is raised.")
 
