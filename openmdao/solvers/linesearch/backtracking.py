@@ -43,7 +43,8 @@ def _print_violations(unknowns, lower, upper):
 
 class LineSearchSolver(NonlinearSolver):
 
-    def _enforce_bound(self, u, du, alpha, lower, upper, bound_enforcement):
+    @staticmethod
+    def _enforce_bound(u, du, alpha, lower, upper, bound_enforcement):
         if bound_enforcement == 'vector':
             u._enforce_bounds_vector(du, alpha, lower, upper)
         elif bound_enforcement == 'scalar':
@@ -293,6 +294,7 @@ class ArmijoGoldsteinLS(LineSearchSolver):
         atol = self.options['atol']
         rtol = self.options['rtol']
         c = self.options['c']
+        rho = self.options['rho']
 
         system = self._system
         u = system._outputs
@@ -307,10 +309,9 @@ class ArmijoGoldsteinLS(LineSearchSolver):
                ((norm > norm0 - c * self.alpha * norm0) or self._analysis_error_raised)):
             with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
 
-                u.add_scal_vec(-self.alpha, du)
+                u.add_scal_vec(self.alpha * (rho-1), du)  # step to the new point on line search
                 if self._iter_count > 0:
-                    self.alpha *= self.options['rho']
-                u.add_scal_vec(self.alpha, du)
+                    self.alpha *= rho  # reduce step length
 
                 cache = self._solver_info.save_cache()
 
