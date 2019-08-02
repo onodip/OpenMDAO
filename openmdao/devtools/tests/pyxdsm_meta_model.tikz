@@ -1,0 +1,50 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+\node [Optimization] (Driver) {$\text{0, 2$ \rightarrow $ 1: Driver}$};&
+&
+\\
+%Row 1
+&
+\node [Function] (des@vars) {$\text{1: des\_vars}$};&
+\node [DataInter] (des@vars-comp) {$\begin{array}{c}x \\ y \\ z\end{array}$};\\
+%Row 2
+&
+&
+\node [Metamodel] (comp) {$\text{2: comp}$};\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (des@vars) [join=by ProcessHV];
+\chainin (comp) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(des@vars) edge [DataLine] (des@vars-comp)
+% Vertical edges
+(des@vars-comp) edge [DataLine] (comp);
+\end{pgfonlayer}
+
+\end{tikzpicture}

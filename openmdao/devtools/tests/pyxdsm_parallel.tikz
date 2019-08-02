@@ -1,0 +1,162 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_ScipyOptimizeDriver) {$\begin{array}{c}z^{(0)} \\ x^{(0)}\end{array}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_ScipyOptimizeDriver) {$\begin{array}{c}z^{*} \\ x^{*}\end{array}$};&
+\node [Optimization] (ScipyOptimizeDriver) {$\text{0, 6$ \rightarrow $ 1: ScipyOptimizeDriver}$};&
+\node [DataInter] (ScipyOptimizeDriver-indeps) {$\begin{array}{c}z \\ x\end{array}$};&
+&
+&
+&
+&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_indeps) {$\begin{array}{c}z^{*} \\ x^{*}\end{array}$};&
+&
+\node [Function] (indeps) {$\text{1: indeps}$};&
+\node [DataInter,stack] (indeps-cycle@d1) {$\begin{array}{c}x \\ z\end{array}$};&
+\node [DataInter,stack] (indeps-cycle@d2) {$\begin{array}{c}z\end{array}$};&
+\node [DataInter] (indeps-obj@cmp) {$\begin{array}{c}x \\ z\end{array}$};&
+&
+&
+\\
+%Row 3
+&
+&
+&
+\node [Analysis,stack] (cycle@d1) {$\text{2: d1}$};&
+\node [DataInter,stack] (cycle@d1-cycle@d2) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter,stack] (cycle@d1-obj@cmp) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter,stack] (cycle@d1-con@cmp1) {$\begin{array}{c}y1\end{array}$};&
+&
+\\
+%Row 4
+&
+&
+&
+\node [DataInter,stack] (cycle@d2-cycle@d1) {$\begin{array}{c}y2\end{array}$};&
+\node [Analysis,stack] (cycle@d2) {$\text{3: d2}$};&
+\node [DataInter,stack] (cycle@d2-obj@cmp) {$\begin{array}{c}y2\end{array}$};&
+&
+\node [DataInter,stack] (cycle@d2-con@cmp2) {$\begin{array}{c}y2\end{array}$};&
+\\
+%Row 5
+\node [DataIO] (left_output_obj@cmp) {$\begin{array}{c}obj^{*}\end{array}$};&
+\node [DataInter] (obj@cmp-ScipyOptimizeDriver) {$\begin{array}{c}obj\end{array}$};&
+&
+&
+&
+\node [Function] (obj@cmp) {$\text{4: obj\_cmp}$};&
+&
+&
+\\
+%Row 6
+\node [DataIO] (left_output_con@cmp1) {$\begin{array}{c}con1^{*}\end{array}$};&
+\node [DataInter] (con@cmp1-ScipyOptimizeDriver) {$\begin{array}{c}con1\end{array}$};&
+&
+&
+&
+&
+\node [Function] (con@cmp1) {$\text{5: con\_cmp1}$};&
+&
+\\
+%Row 7
+\node [DataIO] (left_output_con@cmp2) {$\begin{array}{c}con2^{*}\end{array}$};&
+\node [DataInter] (con@cmp2-ScipyOptimizeDriver) {$\begin{array}{c}con2\end{array}$};&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp2) {$\text{6: con\_cmp2}$};&
+\\
+%Row 8
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (ScipyOptimizeDriver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (cycle@d1) [join=by ProcessHV];
+\chainin (cycle@d2) [join=by ProcessHV];
+\chainin (obj@cmp) [join=by ProcessHV];
+\chainin (con@cmp1) [join=by ProcessHV];
+\chainin (con@cmp2) [join=by ProcessHV];
+\chainin (ScipyOptimizeDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver-indeps)
+(con@cmp1) edge [DataLine] (con@cmp1-ScipyOptimizeDriver)
+(con@cmp2) edge [DataLine] (con@cmp2-ScipyOptimizeDriver)
+(obj@cmp) edge [DataLine] (obj@cmp-ScipyOptimizeDriver)
+(cycle@d2) edge [DataLine] (cycle@d2-con@cmp2)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-obj@cmp)
+(indeps) edge [DataLine] (indeps-cycle@d2)
+(indeps) edge [DataLine] (indeps-cycle@d1)
+(indeps) edge [DataLine] (indeps-obj@cmp)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-con@cmp1)
+(cycle@d1) edge [DataLine] (cycle@d1-obj@cmp)
+(indeps) edge [DataLine] (left_output_indeps)
+(ScipyOptimizeDriver) edge [DataLine] (left_output_ScipyOptimizeDriver)
+(obj@cmp) edge [DataLine] (left_output_obj@cmp)
+(con@cmp2) edge [DataLine] (left_output_con@cmp2)
+(con@cmp1) edge [DataLine] (left_output_con@cmp1)
+% Vertical edges
+(ScipyOptimizeDriver-indeps) edge [DataLine] (indeps)
+(con@cmp1-ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver)
+(con@cmp2-ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver)
+(obj@cmp-ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver)
+(cycle@d2-con@cmp2) edge [DataLine] (con@cmp2)
+(cycle@d2-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-obj@cmp) edge [DataLine] (obj@cmp)
+(indeps-cycle@d2) edge [DataLine] (cycle@d2)
+(indeps-cycle@d1) edge [DataLine] (cycle@d1)
+(indeps-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d1-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle@d1-obj@cmp) edge [DataLine] (obj@cmp)
+(ScipyOptimizeDriver) edge [DataLine] (output_ScipyOptimizeDriver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

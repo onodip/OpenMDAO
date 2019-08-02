@@ -1,0 +1,135 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv_py3/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_Driver) {$\begin{array}{c}z^{(0)} \\ x^{(0)}\end{array}$};&
+&
+&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_Driver) {$\begin{array}{c}z^{*} \\ x^{*}\end{array}$};&
+\node [Optimization] (Driver) {$\text{Driver}$};&
+\node [DataInter] (Driver-indeps) {$\begin{array}{c}z \\ x\end{array}$};&
+&
+&
+&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_indeps) {$\begin{array}{c}z^{*} \\ x^{*}\end{array}$};&
+&
+\node [Function] (indeps) {$\text{$\begin{array}{c} \text{indeps} \\ \text{\textit{IndepVarComp}} \end{array}$}$};&
+\node [DataInter] (indeps-cycle) {$\begin{array}{c}x \\ z\end{array}$};&
+\node [DataInter] (indeps-obj@cmp) {$\begin{array}{c}x \\ z\end{array}$};&
+&
+&
+\\
+%Row 3
+&
+&
+&
+\node [Analysis] (cycle) {$\text{$\begin{array}{c} \text{cycle} \\ \text{\textit{Group}} \end{array}$}$};&
+\node [DataInter] (cycle-obj@cmp) {$\begin{array}{c}y1 \\ y2\end{array}$};&
+\node [DataInter] (cycle-con@cmp1) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle-con@cmp2) {$\begin{array}{c}y2\end{array}$};&
+\\
+%Row 4
+\node [DataIO] (left_output_obj@cmp) {$\begin{array}{c}obj^{*}\end{array}$};&
+\node [DataInter] (obj@cmp-Driver) {$\begin{array}{c}obj\end{array}$};&
+&
+&
+\node [Function] (obj@cmp) {$\text{$\begin{array}{c} \text{obj\_cmp} \\ \text{\textit{ExecComp}} \end{array}$}$};&
+&
+&
+\\
+%Row 5
+\node [DataIO] (left_output_con@cmp1) {$\begin{array}{c}con1^{*}\end{array}$};&
+\node [DataInter] (con@cmp1-Driver) {$\begin{array}{c}con1\end{array}$};&
+&
+&
+&
+\node [Function] (con@cmp1) {$\text{$\begin{array}{c} \text{con\_cmp1} \\ \text{\textit{ExecComp}} \end{array}$}$};&
+&
+\\
+%Row 6
+\node [DataIO] (left_output_con@cmp2) {$\begin{array}{c}con2^{*}\end{array}$};&
+\node [DataInter] (con@cmp2-Driver) {$\begin{array}{c}con2\end{array}$};&
+&
+&
+&
+&
+\node [Function] (con@cmp2) {$\text{$\begin{array}{c} \text{con\_cmp2} \\ \text{\textit{ExecComp}} \end{array}$}$};&
+\\
+%Row 7
+&
+&
+&
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (cycle) [join=by ProcessHV];
+\chainin (obj@cmp) [join=by ProcessHV];
+\chainin (con@cmp1) [join=by ProcessHV];
+\chainin (con@cmp2) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(Driver) edge [DataLine] (Driver-indeps)
+(obj@cmp) edge [DataLine] (obj@cmp-Driver)
+(con@cmp1) edge [DataLine] (con@cmp1-Driver)
+(con@cmp2) edge [DataLine] (con@cmp2-Driver)
+(cycle) edge [DataLine] (cycle-obj@cmp)
+(cycle) edge [DataLine] (cycle-con@cmp1)
+(cycle) edge [DataLine] (cycle-con@cmp2)
+(indeps) edge [DataLine] (indeps-cycle)
+(indeps) edge [DataLine] (indeps-obj@cmp)
+(indeps) edge [DataLine] (left_output_indeps)
+(Driver) edge [DataLine] (left_output_Driver)
+(obj@cmp) edge [DataLine] (left_output_obj@cmp)
+(con@cmp1) edge [DataLine] (left_output_con@cmp1)
+(con@cmp2) edge [DataLine] (left_output_con@cmp2)
+% Vertical edges
+(Driver-indeps) edge [DataLine] (indeps)
+(obj@cmp-Driver) edge [DataLine] (Driver)
+(con@cmp1-Driver) edge [DataLine] (Driver)
+(con@cmp2-Driver) edge [DataLine] (Driver)
+(cycle-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle-con@cmp2) edge [DataLine] (con@cmp2)
+(indeps-cycle) edge [DataLine] (cycle)
+(indeps-obj@cmp) edge [DataLine] (obj@cmp)
+(Driver) edge [DataLine] (output_Driver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

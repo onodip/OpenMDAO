@@ -1,0 +1,73 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_Driver) {$\begin{array}{c}V^{(0)} \\ I^{(0)}\end{array}$};&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_Driver) {$\begin{array}{c}V^{*} \\ I^{*}\end{array}$};&
+\node [Optimization] (Driver) {$\text{0, 2$ \rightarrow $ 1: Driver}$};&
+\node [DataInter] (Driver-G1) {$\begin{array}{c}V \\ I\end{array}$};&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_G1) {$\begin{array}{c}I^{*}\end{array}$};&
+\node [DataInter] (G1-Driver) {$\begin{array}{c}I\end{array}$};&
+\node [Analysis] (G1) {$\text{1: G1}$};&
+&
+\\
+%Row 3
+&
+&
+&
+\node [Analysis] (G2) {$\text{2: G2}$};&
+\\
+%Row 4
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (G1) [join=by ProcessHV];
+\chainin (G2) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(Driver) edge [DataLine] (Driver-G1)
+(G1) edge [DataLine] (G1-Driver)
+(Driver) edge [DataLine] (left_output_Driver)
+(G1) edge [DataLine] (left_output_G1)
+% Vertical edges
+(Driver-G1) edge [DataLine] (G1)
+(G1-Driver) edge [DataLine] (Driver)
+(Driver) edge [DataLine] (output_Driver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

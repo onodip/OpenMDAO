@@ -1,0 +1,43 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+\node [Optimization] (Driver) {$\text{0, 1$ \rightarrow $ 1: Driver}$};&
+\\
+%Row 1
+&
+\node [Function] (source2) {$\text{1: source2}$};\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (source2) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+
+% Vertical edges
+;
+\end{pgfonlayer}
+
+\end{tikzpicture}

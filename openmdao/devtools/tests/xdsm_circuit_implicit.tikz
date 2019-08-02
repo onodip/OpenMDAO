@@ -1,0 +1,186 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv_py3/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_Driver) {$\begin{array}{c}I^{(0)}\end{array}$};&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_Driver) {$\begin{array}{c}I^{*}\end{array}$};&
+\node [Optimization] (Driver) {$\text{0, 9$ \rightarrow $ 1: Driver}$};&
+\node [DataInter] (Driver-ground) {$\begin{array}{c}V\end{array}$};&
+\node [DataInter] (Driver-source) {$\begin{array}{c}I\end{array}$};&
+&
+&
+&
+&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_ground) {$\begin{array}{c}V^{*}\end{array}$};&
+&
+\node [Function] (ground) {$\text{1: ground}$};&
+&
+&
+&
+\node [DataInter] (ground-circuit@R1) {$\begin{array}{c}V\end{array}$};&
+&
+\node [DataInter] (ground-circuit@D1) {$\begin{array}{c}V\end{array}$};&
+\\
+%Row 3
+\node [DataIO] (left_output_source) {$\begin{array}{c}I^{*}\end{array}$};&
+&
+&
+\node [Function] (source) {$\text{2: source}$};&
+\node [DataInter] (source-circuit@n1) {$\begin{array}{c}I\end{array}$};&
+&
+&
+&
+&
+\\
+%Row 4
+&
+&
+&
+&
+\node [ImplicitAnalysis] (circuit@n1) {$\text{3: n1}$};&
+&
+\node [DataInter] (circuit@n1-circuit@R1) {$\begin{array}{c}V\end{array}$};&
+\node [DataInter] (circuit@n1-circuit@R2) {$\begin{array}{c}V\end{array}$};&
+&
+\\
+%Row 5
+&
+&
+&
+&
+&
+\node [ImplicitAnalysis] (circuit@n2) {$\text{4: n2}$};&
+&
+\node [DataInter] (circuit@n2-circuit@R2) {$\begin{array}{c}V\end{array}$};&
+\node [DataInter] (circuit@n2-circuit@D1) {$\begin{array}{c}V\end{array}$};&
+\\
+%Row 6
+&
+&
+&
+&
+\node [DataInter] (circuit@R1-circuit@n1) {$\begin{array}{c}I\end{array}$};&
+&
+\node [Function] (circuit@R1) {$\text{5: R1}$};&
+&
+&
+\\
+%Row 7
+&
+&
+&
+&
+\node [DataInter] (circuit@R2-circuit@n1) {$\begin{array}{c}I\end{array}$};&
+\node [DataInter] (circuit@R2-circuit@n2) {$\begin{array}{c}I\end{array}$};&
+&
+\node [Function] (circuit@R2) {$\text{6: R2}$};&
+&
+\\
+%Row 8
+\node [DataIO] (left_output_circuit@D1) {$\begin{array}{c}I^{*}\end{array}$};&
+\node [DataInter] (circuit@D1-Driver) {$\begin{array}{c}I\end{array}$};&
+&
+&
+&
+\node [DataInter] (circuit@D1-circuit@n2) {$\begin{array}{c}I\end{array}$};&
+&
+&
+\node [Function] (circuit@D1) {$\text{7: D1}$};&
+\\
+%Row 9
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+\node (legend_title) {\LARGE \textbf{Legend}};\\\node [Function] (style0) {Function};  &
+\node [ImplicitAnalysis] (style1) {ImplicitAnalysis};  &
+\node [Optimization] (style2) {Optimization};\\};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (ground) [join=by ProcessHV];
+\chainin (source) [join=by ProcessHV];
+\chainin (circuit@n1) [join=by ProcessHV];
+\chainin (circuit@n2) [join=by ProcessHV];
+\chainin (circuit@R1) [join=by ProcessHV];
+\chainin (circuit@R2) [join=by ProcessHV];
+\chainin (circuit@D1) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(Driver) edge [DataLine] (Driver-ground)
+(Driver) edge [DataLine] (Driver-source)
+(circuit@D1) edge [DataLine] (circuit@D1-Driver)
+(circuit@n2) edge [DataLine] (circuit@n2-circuit@D1)
+(circuit@n2) edge [DataLine] (circuit@n2-circuit@R2)
+(ground) edge [DataLine] (ground-circuit@D1)
+(ground) edge [DataLine] (ground-circuit@R1)
+(circuit@n1) edge [DataLine] (circuit@n1-circuit@R1)
+(circuit@n1) edge [DataLine] (circuit@n1-circuit@R2)
+(source) edge [DataLine] (source-circuit@n1)
+(circuit@R1) edge [DataLine] (circuit@R1-circuit@n1)
+(circuit@R2) edge [DataLine] (circuit@R2-circuit@n1)
+(circuit@R2) edge [DataLine] (circuit@R2-circuit@n2)
+(circuit@D1) edge [DataLine] (circuit@D1-circuit@n2)
+(ground) edge [DataLine] (left_output_ground)
+(Driver) edge [DataLine] (left_output_Driver)
+(source) edge [DataLine] (left_output_source)
+(circuit@D1) edge [DataLine] (left_output_circuit@D1)
+% Vertical edges
+(Driver-ground) edge [DataLine] (ground)
+(Driver-source) edge [DataLine] (source)
+(circuit@D1-Driver) edge [DataLine] (Driver)
+(circuit@n2-circuit@D1) edge [DataLine] (circuit@D1)
+(circuit@n2-circuit@R2) edge [DataLine] (circuit@R2)
+(ground-circuit@D1) edge [DataLine] (circuit@D1)
+(ground-circuit@R1) edge [DataLine] (circuit@R1)
+(circuit@n1-circuit@R1) edge [DataLine] (circuit@R1)
+(circuit@n1-circuit@R2) edge [DataLine] (circuit@R2)
+(source-circuit@n1) edge [DataLine] (circuit@n1)
+(circuit@R1-circuit@n1) edge [DataLine] (circuit@n1)
+(circuit@R2-circuit@n1) edge [DataLine] (circuit@n1)
+(circuit@R2-circuit@n2) edge [DataLine] (circuit@n2)
+(circuit@D1-circuit@n2) edge [DataLine] (circuit@n2)
+(Driver) edge [DataLine] (output_Driver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

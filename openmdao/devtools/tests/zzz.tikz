@@ -1,0 +1,235 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_ScipyOptimizeDriver) {$\begin{array}{c}t\_initial^{(0)} \\ t\_duration^{(0)}\end{array}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_ScipyOptimizeDriver) {$\begin{array}{c}t\_initial^{*} \\ t\_duration^{*}\end{array}$};&
+\node [Optimization] (ScipyOptimizeDriver) {$\text{$\begin{array}{cc} \text{1, 10$ \rightarrow $ 2: } \\ \text{ScipyOptimizeDriver} \end{array}$}$};&
+&
+\node [DataInter] (ScipyOptimizeDriver-orbit@phase@time@extents) {$\begin{array}{c}t\_initial \\ t\_duration\end{array}$};&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 2
+&
+&
+\node [MDA] (NL@@Newton@LN@@Direct) {$\text{$\begin{array}{cc} \text{2, 9$ \rightarrow $ 3: } \\ \text{NL: Newton} \\ \text{LN: Direct} \end{array}$}$};&
+&
+\node [DataInter] (NL@@Newton@LN@@Direct-orbit@phase@time) {$\begin{array}{c}t\_duration^{t} \\ t\_initial^{t}\end{array}$};&
+&
+\node [DataInter] (NL@@Newton@LN@@Direct-systems@phase@time) {$\begin{array}{c}t\_duration^{t} \\ t\_initial^{t}\end{array}$};&
+&
+\node [DataInter] (NL@@Newton@LN@@Direct-extra@phase@time) {$\begin{array}{c}t\_duration^{t} \\ t\_initial^{t}\end{array}$};&
+&
+&
+\\
+%Row 3
+\node [DataIO] (left_output_orbit@phase@time@extents) {$\begin{array}{c}t\_initial^{*} \\ t\_duration^{*}\end{array}$};&
+&
+\node [DataInter] (orbit@phase@time@extents-NL@@Newton@LN@@Direct) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+\node [Function,stack] (orbit@phase@time@extents) {$\text{$\begin{array}{cc} \text{3: } \\ \text{orbit\_phase.time\_extents} \end{array}$}$};&
+\node [DataInter,stack] (orbit@phase@time@extents-orbit@phase@time) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 4
+&
+&
+&
+&
+\node [Analysis,stack] (orbit@phase@time) {$\text{$\begin{array}{cc} \text{4: } \\ \text{orbit\_phase.time} \end{array}$}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 5
+&
+&
+\node [DataInter] (systems@phase@time@extents-NL@@Newton@LN@@Direct) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+\node [Function,stack] (systems@phase@time@extents) {$\text{$\begin{array}{cc} \text{5: } \\ \text{systems\_phase.time\_extents} \end{array}$}$};&
+\node [DataInter,stack] (systems@phase@time@extents-systems@phase@time) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+&
+&
+\\
+%Row 6
+&
+&
+&
+&
+&
+&
+\node [Analysis,stack] (systems@phase@time) {$\text{$\begin{array}{cc} \text{6: } \\ \text{systems\_phase.time} \end{array}$}$};&
+&
+&
+&
+&
+\\
+%Row 7
+&
+&
+\node [DataInter] (extra@phase@time@extents-NL@@Newton@LN@@Direct) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+&
+&
+\node [Function,stack] (extra@phase@time@extents) {$\text{$\begin{array}{cc} \text{7: } \\ \text{extra\_phase.time\_extents} \end{array}$}$};&
+\node [DataInter,stack] (extra@phase@time@extents-extra@phase@time) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+\\
+%Row 8
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Analysis,stack] (extra@phase@time) {$\text{$\begin{array}{cc} \text{8: } \\ \text{extra\_phase.time} \end{array}$}$};&
+&
+&
+\\
+%Row 9
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Metamodel] (meta) {$\text{$\begin{array}{cc} \text{9: } \\ \text{meta} \end{array}$}$};&
+&
+\\
+%Row 10
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [ImplicitAnalysis] (implicit) {$\text{$\begin{array}{cc} \text{10: } \\ \text{implicit} \end{array}$}$};&
+\\
+%Row 11
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (NL@@Newton@LN@@Direct);
+\chainin (orbit@phase@time@extents) [join=by ProcessHV];
+\chainin (orbit@phase@time) [join=by ProcessHV];
+\chainin (systems@phase@time@extents) [join=by ProcessHV];
+\chainin (systems@phase@time) [join=by ProcessHV];
+\chainin (extra@phase@time@extents) [join=by ProcessHV];
+\chainin (extra@phase@time) [join=by ProcessHV];
+\chainin (meta) [join=by ProcessHV];
+\chainin (implicit) [join=by ProcessHV];
+\chainin (NL@@Newton@LN@@Direct) [join=by ProcessHV];
+\end{pgfonlayer}
+}{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (ScipyOptimizeDriver);
+\chainin (NL@@Newton@LN@@Direct) [join=by ProcessHV];
+\chainin (orbit@phase@time@extents) [join=by ProcessHV];
+\chainin (orbit@phase@time) [join=by ProcessHV];
+\chainin (systems@phase@time@extents) [join=by ProcessHV];
+\chainin (systems@phase@time) [join=by ProcessHV];
+\chainin (extra@phase@time@extents) [join=by ProcessHV];
+\chainin (extra@phase@time) [join=by ProcessHV];
+\chainin (meta) [join=by ProcessHV];
+\chainin (implicit) [join=by ProcessHV];
+\chainin (ScipyOptimizeDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver-orbit@phase@time@extents)
+(NL@@Newton@LN@@Direct) edge [DataLine] (NL@@Newton@LN@@Direct-extra@phase@time)
+(extra@phase@time@extents) edge [DataLine] (extra@phase@time@extents-NL@@Newton@LN@@Direct)
+(NL@@Newton@LN@@Direct) edge [DataLine] (NL@@Newton@LN@@Direct-systems@phase@time)
+(systems@phase@time@extents) edge [DataLine] (systems@phase@time@extents-NL@@Newton@LN@@Direct)
+(NL@@Newton@LN@@Direct) edge [DataLine] (NL@@Newton@LN@@Direct-orbit@phase@time)
+(orbit@phase@time@extents) edge [DataLine] (orbit@phase@time@extents-NL@@Newton@LN@@Direct)
+(extra@phase@time@extents) edge [DataLine] (extra@phase@time@extents-extra@phase@time)
+(systems@phase@time@extents) edge [DataLine] (systems@phase@time@extents-systems@phase@time)
+(orbit@phase@time@extents) edge [DataLine] (orbit@phase@time@extents-orbit@phase@time)
+(ScipyOptimizeDriver) edge [DataLine] (left_output_ScipyOptimizeDriver)
+(orbit@phase@time@extents) edge [DataLine] (left_output_orbit@phase@time@extents)
+% Vertical edges
+(ScipyOptimizeDriver-orbit@phase@time@extents) edge [DataLine] (orbit@phase@time@extents)
+(NL@@Newton@LN@@Direct-extra@phase@time) edge [DataLine] (extra@phase@time)
+(extra@phase@time@extents-NL@@Newton@LN@@Direct) edge [DataLine] (NL@@Newton@LN@@Direct)
+(NL@@Newton@LN@@Direct-systems@phase@time) edge [DataLine] (systems@phase@time)
+(systems@phase@time@extents-NL@@Newton@LN@@Direct) edge [DataLine] (NL@@Newton@LN@@Direct)
+(NL@@Newton@LN@@Direct-orbit@phase@time) edge [DataLine] (orbit@phase@time)
+(orbit@phase@time@extents-NL@@Newton@LN@@Direct) edge [DataLine] (NL@@Newton@LN@@Direct)
+(extra@phase@time@extents-extra@phase@time) edge [DataLine] (extra@phase@time)
+(systems@phase@time@extents-systems@phase@time) edge [DataLine] (systems@phase@time)
+(orbit@phase@time@extents-orbit@phase@time) edge [DataLine] (orbit@phase@time)
+(ScipyOptimizeDriver) edge [DataLine] (output_ScipyOptimizeDriver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

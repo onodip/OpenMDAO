@@ -1,0 +1,61 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+\node [Optimization] (Driver) {$\text{0, 3$ \rightarrow $ 1: Driver}$};&
+&
+&
+\\
+%Row 1
+&
+\node [Function] (ground) {$\text{1: ground}$};&
+&
+\node [DataInter] (ground-circuit) {$\begin{array}{c}V\end{array}$};\\
+%Row 2
+&
+&
+\node [Function] (source) {$\text{2: source}$};&
+\node [DataInter] (source-circuit) {$\begin{array}{c}I\end{array}$};\\
+%Row 3
+&
+&
+&
+\node [Analysis] (circuit) {$\text{3: circuit}$};\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (ground) [join=by ProcessHV];
+\chainin (source) [join=by ProcessHV];
+\chainin (circuit) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(source) edge [DataLine] (source-circuit)
+(ground) edge [DataLine] (ground-circuit)
+% Vertical edges
+(source-circuit) edge [DataLine] (circuit)
+(ground-circuit) edge [DataLine] (circuit);
+\end{pgfonlayer}
+
+\end{tikzpicture}

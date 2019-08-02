@@ -1,0 +1,237 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+\node [Optimization] (ScipyOptimizeDriver) {$\text{0, 9$ \rightarrow $ 1: ScipyOptimizeDriver}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+&
+\node [MDA] (root@solver) {$\text{1, 9$ \rightarrow $ 2: NL: NLBGS}$};&
+&
+&
+&
+\node [DataInter] (root@solver-cycle@d1) {$\begin{array}{c}x^{t}\end{array}$};&
+\node [DataInter] (root@solver-cycle@d2) {$\begin{array}{c}y1^{t}\end{array}$};&
+\node [DataInter] (root@solver-obj@cmp) {$\begin{array}{c}y1^{t}\end{array}$};&
+\node [DataInter] (root@solver-con@cmp1) {$\begin{array}{c}y1^{t}\end{array}$};&
+\node [DataInter] (root@solver-con@cmp2) {$\begin{array}{c}y2^{t}\end{array}$};\\
+%Row 2
+&
+\node [DataInter] (px-root@solver) {$\begin{array}{c}x\end{array}$};&
+\node [Function] (px) {$\text{2: px}$};&
+&
+&
+\node [DataInter] (px-cycle@d1) {$\begin{array}{c}x\end{array}$};&
+&
+\node [DataInter] (px-obj@cmp) {$\begin{array}{c}x\end{array}$};&
+&
+\\
+%Row 3
+&
+\node [DataInter] (pz-root@solver) {$\begin{array}{c}z\end{array}$};&
+&
+\node [Function] (pz) {$\text{3: pz}$};&
+&
+\node [DataInter] (pz-cycle@d1) {$\begin{array}{c}z\end{array}$};&
+\node [DataInter] (pz-cycle@d2) {$\begin{array}{c}z\end{array}$};&
+\node [DataInter] (pz-obj@cmp) {$\begin{array}{c}z\end{array}$};&
+&
+\\
+%Row 4
+&
+&
+&
+&
+\node [MDA] (cycle@solver) {$\text{6, 8$ \rightarrow $ 7: LN: SCIPY}$};&
+\node [DataInter] (cycle@solver-cycle@d1) {$\begin{array}{c}y2^{t}\end{array}$};&
+\node [DataInter] (cycle@solver-cycle@d2) {$\begin{array}{c}y1^{t}\end{array}$};&
+&
+&
+\\
+%Row 5
+&
+\node [DataInter] (cycle@d1-root@solver) {$\begin{array}{c}y1\end{array}$};&
+&
+&
+\node [DataInter] (cycle@d1-cycle@solver) {$\begin{array}{c}y1\end{array}$};&
+\node [Analysis] (cycle@d1) {$\text{5: d1}$};&
+\node [DataInter] (cycle@d1-cycle@d2) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle@d1-obj@cmp) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle@d1-con@cmp1) {$\begin{array}{c}y1\end{array}$};&
+\\
+%Row 6
+&
+\node [DataInter] (cycle@d2-root@solver) {$\begin{array}{c}y2\end{array}$};&
+&
+&
+\node [DataInter] (cycle@d2-cycle@solver) {$\begin{array}{c}y2\end{array}$};&
+\node [DataInter] (cycle@d2-cycle@d1) {$\begin{array}{c}y2\end{array}$};&
+\node [Analysis] (cycle@d2) {$\text{6: d2}$};&
+\node [DataInter] (cycle@d2-obj@cmp) {$\begin{array}{c}y2\end{array}$};&
+&
+\node [DataInter] (cycle@d2-con@cmp2) {$\begin{array}{c}y2\end{array}$};\\
+%Row 7
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (obj@cmp) {$\text{7: obj\_cmp}$};&
+&
+\\
+%Row 8
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp1) {$\text{8: con\_cmp1}$};&
+\\
+%Row 9
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp2) {$\text{9: con\_cmp2}$};\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (ScipyOptimizeDriver);
+\chainin (root@solver) [join=by ProcessHV];
+\chainin (ScipyOptimizeDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (root@solver);
+\chainin (px) [join=by ProcessHV];
+\chainin (pz) [join=by ProcessHV];
+\chainin (cycle@solver) [join=by ProcessHV];
+\chainin (obj@cmp) [join=by ProcessHV];
+\chainin (con@cmp1) [join=by ProcessHV];
+\chainin (con@cmp2) [join=by ProcessHV];
+\chainin (root@solver) [join=by ProcessHV];
+\end{pgfonlayer}
+}{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (cycle@solver);
+\chainin (cycle@d1) [join=by ProcessHV];
+\chainin (cycle@d2) [join=by ProcessHV];
+\chainin (cycle@solver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(root@solver) edge [DataLine] (root@solver-con@cmp2)
+(cycle@d2) edge [DataLine] (cycle@d2-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-root@solver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(cycle@d2) edge [DataLine] (cycle@d2-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d2)
+(pz) edge [DataLine] (pz-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d1)
+(pz) edge [DataLine] (pz-root@solver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(pz) edge [DataLine] (pz-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d1)
+(px) edge [DataLine] (px-root@solver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(px) edge [DataLine] (px-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-root@solver)
+(root@solver) edge [DataLine] (root@solver-con@cmp1)
+(cycle@d1) edge [DataLine] (cycle@d1-root@solver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(cycle@d1) edge [DataLine] (cycle@d1-root@solver)
+(cycle@solver) edge [DataLine] (cycle@solver-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@solver)
+(cycle@solver) edge [DataLine] (cycle@solver-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@solver)
+(cycle@d2) edge [DataLine] (cycle@d2-con@cmp2)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-obj@cmp)
+(pz) edge [DataLine] (pz-cycle@d2)
+(pz) edge [DataLine] (pz-cycle@d1)
+(pz) edge [DataLine] (pz-obj@cmp)
+(px) edge [DataLine] (px-cycle@d1)
+(px) edge [DataLine] (px-obj@cmp)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-con@cmp1)
+(cycle@d1) edge [DataLine] (cycle@d1-obj@cmp)
+% Vertical edges
+(root@solver-con@cmp2) edge [DataLine] (con@cmp2)
+(cycle@d2-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-root@solver) edge [DataLine] (root@solver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d2-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(pz-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(pz-root@solver) edge [DataLine] (root@solver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(pz-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(px-root@solver) edge [DataLine] (root@solver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(px-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-root@solver) edge [DataLine] (root@solver)
+(root@solver-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle@d1-root@solver) edge [DataLine] (root@solver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d1-root@solver) edge [DataLine] (root@solver)
+(cycle@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-cycle@solver) edge [DataLine] (cycle@solver)
+(cycle@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-cycle@solver) edge [DataLine] (cycle@solver)
+(cycle@d2-con@cmp2) edge [DataLine] (con@cmp2)
+(cycle@d2-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-obj@cmp) edge [DataLine] (obj@cmp)
+(pz-cycle@d2) edge [DataLine] (cycle@d2)
+(pz-cycle@d1) edge [DataLine] (cycle@d1)
+(pz-obj@cmp) edge [DataLine] (obj@cmp)
+(px-cycle@d1) edge [DataLine] (cycle@d1)
+(px-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d1-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle@d1-obj@cmp) edge [DataLine] (obj@cmp);
+\end{pgfonlayer}
+
+\end{tikzpicture}

@@ -1,0 +1,9 @@
+Driver: ScipyOptimizeDriver
+    Group   LN: LinearBlockGS  NL: NonlinearBlockGS
+        IndepVarComp indeps
+        Group G1
+            ExecComp comp1
+            ExecComp comp2
+            Group G2  LN: LinearBlockGS  NL: NonlinearBlockGS
+                ExecComp comp3
+                ExecComp comp4

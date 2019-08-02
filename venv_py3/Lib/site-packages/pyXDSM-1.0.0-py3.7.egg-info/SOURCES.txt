@@ -1,0 +1,11 @@
+README.md
+setup.py
+pyXDSM.egg-info/PKG-INFO
+pyXDSM.egg-info/SOURCES.txt
+pyXDSM.egg-info/dependency_links.txt
+pyXDSM.egg-info/requires.txt
+pyXDSM.egg-info/top_level.txt
+pyxdsm/XDSM.py
+pyxdsm/__init__.py
+pyxdsm/diagram_styles.tex
+pyxdsm/matrix_eqn.py

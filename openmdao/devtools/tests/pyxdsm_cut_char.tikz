@@ -1,0 +1,141 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_ScipyOptimizeDriver) {$\begin{array}{c}t\_initial^{(0)} \\ t\_duration^{(0)}\end{array}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_ScipyOptimizeDriver) {$\begin{array}{c}t\_initial^{*} \\ t\_duration^{*}\end{array}$};&
+\node [Optimization] (ScipyOptimizeDriver) {$\text{0, 6$ \rightarrow $ 1: ScipyOptimizeDriver}$};&
+\node [DataInter] (ScipyOptimizeDriver-orbit@phase@time@extents) {$\begin{array}{c}t\_initial \\ t\_duration\end{array}$};&
+&
+&
+&
+&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_orbit@phase@time@extents) {$\begin{array}{c}t\_initial^{*} \\ t\_duration^{*}\end{array}$};&
+&
+\node [Function] (orbit@phase@time@extents) {$\text{1: orbit\_phase.time\_extents}$};&
+\node [DataInter] (orbit@phase@time@extents-orbit@phase@time) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+&
+&
+\\
+%Row 3
+&
+&
+&
+\node [Analysis] (orbit@phase@time) {$\text{2: orbit\_phase.time}$};&
+&
+&
+&
+&
+\\
+%Row 4
+&
+&
+&
+&
+\node [Function] (systems@phase@time@extents) {$\text{3: systems\_phase.time\_extents}$};&
+\node [DataInter] (systems@phase@time@extents-systems@phase@time) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+&
+&
+\\
+%Row 5
+&
+&
+&
+&
+&
+\node [Analysis] (systems@phase@time) {$\text{4: systems\_phase.time}$};&
+&
+&
+\\
+%Row 6
+&
+&
+&
+&
+&
+&
+\node [Function] (extra@phase@time@extents) {$\text{5: extra\_phase.time\_extents}$};&
+\node [DataInter] (extra@phase@time@extents-extra@phase@time) {$\begin{array}{c}t\_duration \\ t\_initial\end{array}$};&
+\\
+%Row 7
+&
+&
+&
+&
+&
+&
+&
+\node [Analysis] (extra@phase@time) {$\text{6: extra\_phase.time}$};&
+\\
+%Row 8
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (ScipyOptimizeDriver);
+\chainin (orbit@phase@time@extents) [join=by ProcessHV];
+\chainin (orbit@phase@time) [join=by ProcessHV];
+\chainin (systems@phase@time@extents) [join=by ProcessHV];
+\chainin (systems@phase@time) [join=by ProcessHV];
+\chainin (extra@phase@time@extents) [join=by ProcessHV];
+\chainin (extra@phase@time) [join=by ProcessHV];
+\chainin (ScipyOptimizeDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver-orbit@phase@time@extents)
+(extra@phase@time@extents) edge [DataLine] (extra@phase@time@extents-extra@phase@time)
+(systems@phase@time@extents) edge [DataLine] (systems@phase@time@extents-systems@phase@time)
+(orbit@phase@time@extents) edge [DataLine] (orbit@phase@time@extents-orbit@phase@time)
+(ScipyOptimizeDriver) edge [DataLine] (left_output_ScipyOptimizeDriver)
+(orbit@phase@time@extents) edge [DataLine] (left_output_orbit@phase@time@extents)
+% Vertical edges
+(ScipyOptimizeDriver-orbit@phase@time@extents) edge [DataLine] (orbit@phase@time@extents)
+(extra@phase@time@extents-extra@phase@time) edge [DataLine] (extra@phase@time)
+(systems@phase@time@extents-systems@phase@time) edge [DataLine] (systems@phase@time)
+(orbit@phase@time@extents-orbit@phase@time) edge [DataLine] (orbit@phase@time)
+(ScipyOptimizeDriver) edge [DataLine] (output_ScipyOptimizeDriver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

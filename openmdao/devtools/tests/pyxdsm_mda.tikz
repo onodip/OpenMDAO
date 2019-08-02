@@ -1,0 +1,146 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+\node [Optimization] (Driver) {$\text{1, 9$ \rightarrow $ 2: Driver}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+&
+\node [Function] (indeps) {$\text{2: indeps}$};&
+&
+\node [DataInter] (indeps-cycle@d1) {$\begin{array}{c}x \\ z\end{array}$};&
+\node [DataInter] (indeps-cycle@d2) {$\begin{array}{c}z\end{array}$};&
+\node [DataInter] (indeps-obj@cmp) {$\begin{array}{c}x \\ z\end{array}$};&
+&
+\\
+%Row 2
+&
+&
+\node [MDA] (cycle@solver) {$\text{3, 5$ \rightarrow $ 4: NL: NLBGS}$};&
+\node [DataInter] (cycle@solver-cycle@d1) {$\begin{array}{c}y2^{t}\end{array}$};&
+\node [DataInter] (cycle@solver-cycle@d2) {$\begin{array}{c}y1^{t}\end{array}$};&
+&
+&
+\\
+%Row 3
+&
+&
+\node [DataInter] (cycle@d1-cycle@solver) {$\begin{array}{c}y1\end{array}$};&
+\node [Analysis] (cycle@d1) {$\text{4: d1}$};&
+\node [DataInter] (cycle@d1-cycle@d2) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle@d1-obj@cmp) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle@d1-con@cmp1) {$\begin{array}{c}y1\end{array}$};&
+\\
+%Row 4
+&
+&
+\node [DataInter] (cycle@d2-cycle@solver) {$\begin{array}{c}y2\end{array}$};&
+\node [DataInter] (cycle@d2-cycle@d1) {$\begin{array}{c}y2\end{array}$};&
+\node [Analysis] (cycle@d2) {$\text{5: d2}$};&
+\node [DataInter] (cycle@d2-obj@cmp) {$\begin{array}{c}y2\end{array}$};&
+&
+\node [DataInter] (cycle@d2-con@cmp2) {$\begin{array}{c}y2\end{array}$};\\
+%Row 5
+&
+&
+&
+&
+&
+\node [Function] (obj@cmp) {$\text{6: obj\_cmp}$};&
+&
+\\
+%Row 6
+&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp1) {$\text{7: con\_cmp1}$};&
+\\
+%Row 7
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp2) {$\text{8: con\_cmp2}$};\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (cycle@solver);
+\chainin (cycle@d1) [join=by ProcessHV];
+\chainin (cycle@d2) [join=by ProcessHV];
+\chainin (cycle@solver) [join=by ProcessHV];
+\end{pgfonlayer}
+}{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (cycle@solver) [join=by ProcessHV];
+\chainin (cycle@d1) [join=by ProcessHV];
+\chainin (cycle@d2) [join=by ProcessHV];
+\chainin (obj@cmp) [join=by ProcessHV];
+\chainin (con@cmp1) [join=by ProcessHV];
+\chainin (con@cmp2) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(cycle@solver) edge [DataLine] (cycle@solver-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@solver)
+(cycle@solver) edge [DataLine] (cycle@solver-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@solver)
+(cycle@d2) edge [DataLine] (cycle@d2-con@cmp2)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-obj@cmp)
+(indeps) edge [DataLine] (indeps-cycle@d2)
+(indeps) edge [DataLine] (indeps-cycle@d1)
+(indeps) edge [DataLine] (indeps-obj@cmp)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-con@cmp1)
+(cycle@d1) edge [DataLine] (cycle@d1-obj@cmp)
+% Vertical edges
+(cycle@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-cycle@solver) edge [DataLine] (cycle@solver)
+(cycle@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-cycle@solver) edge [DataLine] (cycle@solver)
+(cycle@d2-con@cmp2) edge [DataLine] (con@cmp2)
+(cycle@d2-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-obj@cmp) edge [DataLine] (obj@cmp)
+(indeps-cycle@d2) edge [DataLine] (cycle@d2)
+(indeps-cycle@d1) edge [DataLine] (cycle@d1)
+(indeps-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d1-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle@d1-obj@cmp) edge [DataLine] (obj@cmp);
+\end{pgfonlayer}
+
+\end{tikzpicture}

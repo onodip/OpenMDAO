@@ -1,0 +1,76 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_ScipyOptimizeDriver) {$\begin{array}{c}x^{(0)}\end{array}$};&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_ScipyOptimizeDriver) {$\begin{array}{c}x^{*}\end{array}$};&
+\node [Optimization] (ScipyOptimizeDriver) {$\text{0, 2$ \rightarrow $ 1: ScipyOptimizeDriver}$};&
+\node [DataInter] (ScipyOptimizeDriver-indeps) {$\begin{array}{c}x\end{array}$};&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_indeps) {$\begin{array}{c}x^{*}\end{array}$};&
+&
+\node [Function] (indeps) {$\text{1: indeps}$};&
+\node [DataInter] (indeps-C1) {$\begin{array}{c}x\end{array}$};&
+\\
+%Row 3
+\node [DataIO] (left_output_C1) {$\begin{array}{c}y^{*}\end{array}$};&
+\node [DataInter] (C1-ScipyOptimizeDriver) {$\begin{array}{c}y\end{array}$};&
+&
+\node [Function] (C1) {$\text{2: C1}$};&
+\\
+%Row 4
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (ScipyOptimizeDriver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (C1) [join=by ProcessHV];
+\chainin (ScipyOptimizeDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver-indeps)
+(C1) edge [DataLine] (C1-ScipyOptimizeDriver)
+(indeps) edge [DataLine] (indeps-C1)
+(indeps) edge [DataLine] (left_output_indeps)
+(ScipyOptimizeDriver) edge [DataLine] (left_output_ScipyOptimizeDriver)
+(C1) edge [DataLine] (left_output_C1)
+% Vertical edges
+(ScipyOptimizeDriver-indeps) edge [DataLine] (indeps)
+(C1-ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver)
+(indeps-C1) edge [DataLine] (C1)
+(ScipyOptimizeDriver) edge [DataLine] (output_ScipyOptimizeDriver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

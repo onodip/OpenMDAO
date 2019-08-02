@@ -179,7 +179,6 @@ class ArmijoGoldsteinLS(LinesearchSolver):
 
         u = system._outputs
         du = system._vectors['output']['linear']
-        self.alpha = 1.
 
         self._run_apply()
         norm0 = self._iter_get_norm()

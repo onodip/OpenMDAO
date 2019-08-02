@@ -100,7 +100,7 @@ class TestArmejoGoldsteinBounds(unittest.TestCase):
 
         ls = top.model.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS(bound_enforcement='scalar')
         ls.options['maxiter'] = 10
-        ls.options['alpha'] = 10.0
+        ls.options['alpha'] = 1.0
 
         # Setup again because we assigned a new linesearch
         top.setup()

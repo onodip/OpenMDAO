@@ -1,0 +1,94 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_ScipyOptimizeDriver) {$\begin{array}{c}x^{(0)}\end{array}$};&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_ScipyOptimizeDriver) {$\begin{array}{c}x^{*}\end{array}$};&
+\node [Optimization] (ScipyOptimizeDriver) {$\text{0, 3$ \rightarrow $ 1: ScipyOptimizeDriver}$};&
+\node [DataInter] (ScipyOptimizeDriver-indeps) {$\begin{array}{c}x\end{array}$};&
+&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_indeps) {$\begin{array}{c}x^{*}\end{array}$};&
+&
+\node [Function] (indeps) {$\text{1: indeps}$};&
+\node [DataInter] (indeps-sphere) {$\begin{array}{c}x\end{array}$};&
+\node [DataInter] (indeps-con) {$\begin{array}{c}x\end{array}$};&
+\\
+%Row 3
+\node [DataIO] (left_output_sphere) {$\begin{array}{c}f^{*}\end{array}$};&
+\node [DataInter] (sphere-ScipyOptimizeDriver) {$\begin{array}{c}f\end{array}$};&
+&
+\node [Analysis] (sphere) {$\text{2: sphere}$};&
+&
+\\
+%Row 4
+\node [DataIO] (left_output_con) {$\begin{array}{c}c^{*}\end{array}$};&
+\node [DataInter] (con-ScipyOptimizeDriver) {$\begin{array}{c}c\end{array}$};&
+&
+&
+\node [Function] (con) {$\text{3: con}$};&
+\\
+%Row 5
+&
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (ScipyOptimizeDriver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (sphere) [join=by ProcessHV];
+\chainin (con) [join=by ProcessHV];
+\chainin (ScipyOptimizeDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver-indeps)
+(sphere) edge [DataLine] (sphere-ScipyOptimizeDriver)
+(con) edge [DataLine] (con-ScipyOptimizeDriver)
+(indeps) edge [DataLine] (indeps-sphere)
+(indeps) edge [DataLine] (indeps-con)
+(indeps) edge [DataLine] (left_output_indeps)
+(ScipyOptimizeDriver) edge [DataLine] (left_output_ScipyOptimizeDriver)
+(con) edge [DataLine] (left_output_con)
+(sphere) edge [DataLine] (left_output_sphere)
+% Vertical edges
+(ScipyOptimizeDriver-indeps) edge [DataLine] (indeps)
+(sphere-ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver)
+(con-ScipyOptimizeDriver) edge [DataLine] (ScipyOptimizeDriver)
+(indeps-sphere) edge [DataLine] (sphere)
+(indeps-con) edge [DataLine] (con)
+(ScipyOptimizeDriver) edge [DataLine] (output_ScipyOptimizeDriver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

@@ -1,0 +1,76 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_DOEDriver) {$\begin{array}{c}x^{(0)}\end{array}$};&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_DOEDriver) {$\begin{array}{c}x^{*}\end{array}$};&
+\node [DOE] (DOEDriver) {$\text{0, 2$ \rightarrow $ 1: DOEDriver}$};&
+\node [DataInter] (DOEDriver-indeps) {$\begin{array}{c}x\end{array}$};&
+&
+\\
+%Row 2
+\node [DataIO] (left_output_indeps) {$\begin{array}{c}x^{*}\end{array}$};&
+&
+\node [Function] (indeps) {$\text{1: indeps}$};&
+\node [DataInter] (indeps-C1) {$\begin{array}{c}x\end{array}$};&
+\\
+%Row 3
+\node [DataIO] (left_output_C1) {$\begin{array}{c}y^{*}\end{array}$};&
+\node [DataInter] (C1-DOEDriver) {$\begin{array}{c}y\end{array}$};&
+&
+\node [Function] (C1) {$\text{2: C1}$};&
+\\
+%Row 4
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (DOEDriver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (C1) [join=by ProcessHV];
+\chainin (DOEDriver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(DOEDriver) edge [DataLine] (DOEDriver-indeps)
+(C1) edge [DataLine] (C1-DOEDriver)
+(indeps) edge [DataLine] (indeps-C1)
+(indeps) edge [DataLine] (left_output_indeps)
+(C1) edge [DataLine] (left_output_C1)
+(DOEDriver) edge [DataLine] (left_output_DOEDriver)
+% Vertical edges
+(DOEDriver-indeps) edge [DataLine] (indeps)
+(C1-DOEDriver) edge [DataLine] (DOEDriver)
+(indeps-C1) edge [DataLine] (C1)
+(DOEDriver) edge [DataLine] (output_DOEDriver);
+\end{pgfonlayer}
+
+\end{tikzpicture}

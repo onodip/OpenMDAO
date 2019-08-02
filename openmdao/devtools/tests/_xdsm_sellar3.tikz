@@ -1,0 +1,260 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{sfmath}
+% \usepackage{tikz}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{ D:/Documents/GitHub/OpenMDAO/venv_py3/lib/site-packages/pyxdsm/diagram_styles }
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+&
+\node [DataIO] (output_Driver) {$\begin{array}{c}z^{(0)} \\ x^{(0)}\end{array}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+\node [DataIO] (left_output_Driver) {$\begin{array}{c}z^{*} \\ x^{*}\end{array}$};&
+\node [Optimization] (Driver) {$\text{Driver}$};&
+&
+\node [DataInter] (Driver-indeps) {$\begin{array}{c}z \\ x\end{array}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 2
+&
+&
+\node [MDA] (root@solver) {$\text{$\begin{array}{c} \text{NL: Newton} \end{array}$}$};&
+&
+&
+\node [DataInter] (root@solver-cycle@d1) {$\begin{array}{c}x^{t} \\ z^{t}\end{array}$};&
+\node [DataInter] (root@solver-cycle@d2) {$\begin{array}{c}z^{t}\end{array}$};&
+\node [DataInter] (root@solver-obj@cmp) {$\begin{array}{c}x^{t} \\ z^{t}\end{array}$};&
+\node [DataInter] (root@solver-con@cmp1) {$\begin{array}{c}y1^{t}\end{array}$};&
+\node [DataInter] (root@solver-con@cmp2) {$\begin{array}{c}y2^{t}\end{array}$};&
+\\
+%Row 3
+\node [DataIO] (left_output_indeps) {$\begin{array}{c}z^{*} \\ x^{*}\end{array}$};&
+&
+\node [DataInter] (indeps-root@solver) {$\begin{array}{c}z\end{array}$};&
+\node [Function] (indeps) {$\text{$\begin{array}{c} \text{indeps} \\ \text{\textit{IndepVarComp}} \end{array}$}$};&
+&
+\node [DataInter] (indeps-cycle@d1) {$\begin{array}{c}x \\ z\end{array}$};&
+\node [DataInter] (indeps-cycle@d2) {$\begin{array}{c}z\end{array}$};&
+\node [DataInter] (indeps-obj@cmp) {$\begin{array}{c}x \\ z\end{array}$};&
+&
+&
+\\
+%Row 4
+&
+&
+&
+&
+\node [MDA] (cycle@solver) {$\text{$\begin{array}{c} \text{NL: NLBGS} \end{array}$}$};&
+\node [DataInter] (cycle@solver-cycle@d1) {$\begin{array}{c}y2^{t}\end{array}$};&
+\node [DataInter] (cycle@solver-cycle@d2) {$\begin{array}{c}y1^{t}\end{array}$};&
+&
+&
+&
+\\
+%Row 5
+&
+&
+\node [DataInter] (cycle@d1-root@solver) {$\begin{array}{c}y1\end{array}$};&
+&
+\node [DataInter] (cycle@d1-cycle@solver) {$\begin{array}{c}y1\end{array}$};&
+\node [Function] (cycle@d1) {$\text{$\begin{array}{c} \text{d1} \\ \text{\textit{SellarDis1}} \end{array}$}$};&
+\node [DataInter] (cycle@d1-cycle@d2) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle@d1-obj@cmp) {$\begin{array}{c}y1\end{array}$};&
+\node [DataInter] (cycle@d1-con@cmp1) {$\begin{array}{c}y1\end{array}$};&
+&
+\\
+%Row 6
+&
+&
+\node [DataInter] (cycle@d2-root@solver) {$\begin{array}{c}y2\end{array}$};&
+&
+\node [DataInter] (cycle@d2-cycle@solver) {$\begin{array}{c}y2\end{array}$};&
+\node [DataInter] (cycle@d2-cycle@d1) {$\begin{array}{c}y2\end{array}$};&
+\node [Function] (cycle@d2) {$\text{$\begin{array}{c} \text{d2} \\ \text{\textit{SellarDis2}} \end{array}$}$};&
+\node [DataInter] (cycle@d2-obj@cmp) {$\begin{array}{c}y2\end{array}$};&
+&
+\node [DataInter] (cycle@d2-con@cmp2) {$\begin{array}{c}y2\end{array}$};&
+\\
+%Row 7
+\node [DataIO] (left_output_obj@cmp) {$\begin{array}{c}obj^{*}\end{array}$};&
+\node [DataInter] (obj@cmp-Driver) {$\begin{array}{c}obj\end{array}$};&
+&
+&
+&
+&
+&
+\node [Function] (obj@cmp) {$\text{$\begin{array}{c} \text{obj\_cmp} \\ \text{\textit{ExecComp}} \end{array}$}$};&
+&
+&
+\\
+%Row 8
+\node [DataIO] (left_output_con@cmp1) {$\begin{array}{c}con1^{*}\end{array}$};&
+\node [DataInter] (con@cmp1-Driver) {$\begin{array}{c}con1\end{array}$};&
+&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp1) {$\text{$\begin{array}{c} \text{con\_cmp1} \\ \text{\textit{ExecComp}} \end{array}$}$};&
+&
+\\
+%Row 9
+\node [DataIO] (left_output_con@cmp2) {$\begin{array}{c}con2^{*}\end{array}$};&
+\node [DataInter] (con@cmp2-Driver) {$\begin{array}{c}con2\end{array}$};&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (con@cmp2) {$\text{$\begin{array}{c} \text{con\_cmp2} \\ \text{\textit{ExecComp}} \end{array}$}$};&
+\\
+%Row 10
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+};
+
+% XDSM process chains
+{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (Driver);
+\chainin (root@solver) [join=by ProcessHV];
+\chainin (Driver) [join=by ProcessHV];
+\end{pgfonlayer}
+}{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (root@solver);
+\chainin (indeps) [join=by ProcessHV];
+\chainin (cycle@solver) [join=by ProcessHV];
+\chainin (obj@cmp) [join=by ProcessHV];
+\chainin (con@cmp1) [join=by ProcessHV];
+\chainin (con@cmp2) [join=by ProcessHV];
+\chainin (root@solver) [join=by ProcessHV];
+\end{pgfonlayer}
+}{ [start chain=process]
+ \begin{pgfonlayer}{process} 
+\chainin (cycle@solver);
+\chainin (cycle@d1) [join=by ProcessHV];
+\chainin (cycle@d2) [join=by ProcessHV];
+\chainin (cycle@solver) [join=by ProcessHV];
+\end{pgfonlayer}
+}
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(Driver) edge [DataLine] (Driver-indeps)
+(obj@cmp) edge [DataLine] (obj@cmp-Driver)
+(con@cmp1) edge [DataLine] (con@cmp1-Driver)
+(con@cmp2) edge [DataLine] (con@cmp2-Driver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(cycle@d2) edge [DataLine] (cycle@d2-root@solver)
+(root@solver) edge [DataLine] (root@solver-con@cmp2)
+(cycle@d2) edge [DataLine] (cycle@d2-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-root@solver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(cycle@d1) edge [DataLine] (cycle@d1-root@solver)
+(root@solver) edge [DataLine] (root@solver-con@cmp1)
+(cycle@d1) edge [DataLine] (cycle@d1-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d1)
+(indeps) edge [DataLine] (indeps-root@solver)
+(root@solver) edge [DataLine] (root@solver-obj@cmp)
+(indeps) edge [DataLine] (indeps-root@solver)
+(root@solver) edge [DataLine] (root@solver-cycle@d2)
+(indeps) edge [DataLine] (indeps-root@solver)
+(cycle@solver) edge [DataLine] (cycle@solver-cycle@d1)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@solver)
+(cycle@solver) edge [DataLine] (cycle@solver-cycle@d2)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@solver)
+(cycle@d2) edge [DataLine] (cycle@d2-obj@cmp)
+(cycle@d2) edge [DataLine] (cycle@d2-con@cmp2)
+(cycle@d2) edge [DataLine] (cycle@d2-cycle@d1)
+(cycle@d1) edge [DataLine] (cycle@d1-obj@cmp)
+(cycle@d1) edge [DataLine] (cycle@d1-con@cmp1)
+(cycle@d1) edge [DataLine] (cycle@d1-cycle@d2)
+(indeps) edge [DataLine] (indeps-cycle@d1)
+(indeps) edge [DataLine] (indeps-obj@cmp)
+(indeps) edge [DataLine] (indeps-cycle@d2)
+(indeps) edge [DataLine] (left_output_indeps)
+(Driver) edge [DataLine] (left_output_Driver)
+(obj@cmp) edge [DataLine] (left_output_obj@cmp)
+(con@cmp1) edge [DataLine] (left_output_con@cmp1)
+(con@cmp2) edge [DataLine] (left_output_con@cmp2)
+% Vertical edges
+(Driver-indeps) edge [DataLine] (indeps)
+(obj@cmp-Driver) edge [DataLine] (Driver)
+(con@cmp1-Driver) edge [DataLine] (Driver)
+(con@cmp2-Driver) edge [DataLine] (Driver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d2-root@solver) edge [DataLine] (root@solver)
+(root@solver-con@cmp2) edge [DataLine] (con@cmp2)
+(cycle@d2-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-root@solver) edge [DataLine] (root@solver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d1-root@solver) edge [DataLine] (root@solver)
+(root@solver-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle@d1-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(indeps-root@solver) edge [DataLine] (root@solver)
+(root@solver-obj@cmp) edge [DataLine] (obj@cmp)
+(indeps-root@solver) edge [DataLine] (root@solver)
+(root@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(indeps-root@solver) edge [DataLine] (root@solver)
+(cycle@solver-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d2-cycle@solver) edge [DataLine] (cycle@solver)
+(cycle@solver-cycle@d2) edge [DataLine] (cycle@d2)
+(cycle@d1-cycle@solver) edge [DataLine] (cycle@solver)
+(cycle@d2-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d2-con@cmp2) edge [DataLine] (con@cmp2)
+(cycle@d2-cycle@d1) edge [DataLine] (cycle@d1)
+(cycle@d1-obj@cmp) edge [DataLine] (obj@cmp)
+(cycle@d1-con@cmp1) edge [DataLine] (con@cmp1)
+(cycle@d1-cycle@d2) edge [DataLine] (cycle@d2)
+(indeps-cycle@d1) edge [DataLine] (cycle@d1)
+(indeps-obj@cmp) edge [DataLine] (obj@cmp)
+(indeps-cycle@d2) edge [DataLine] (cycle@d2)
+(Driver) edge [DataLine] (output_Driver);
+\end{pgfonlayer}
+
+\end{tikzpicture}
