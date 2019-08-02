@@ -41,7 +41,23 @@ def _print_violations(unknowns, lower, upper):
             print("  Lower:", lower._views_flat[name], '\n')
 
 
-class BoundsEnforceLS(NonlinearSolver):
+class LinesearchSolver(NonlinearSolver):
+
+    def __init__(self, **kwargs):
+        """
+        Initialize all attributes.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Options dictionary.
+        """
+        super(LinesearchSolver, self).__init__(**kwargs)
+        # Parent solver sets this to control whether to solve subsystems.
+        self._do_subsolve = False
+
+
+class BoundsEnforceLS(LinesearchSolver):
     """
     Bounds enforcement only.
 
@@ -56,20 +72,6 @@ class BoundsEnforceLS(NonlinearSolver):
     """
 
     SOLVER = 'LS: BCHK'
-
-    def __init__(self, **kwargs):
-        """
-        Initialize all attributes.
-
-        Parameters
-        ----------
-        **kwargs : dict
-            Options dictionary.
-        """
-        super(BoundsEnforceLS, self).__init__(**kwargs)
-
-        # Parent solver sets this to control whether to solve subsystems.
-        self._do_subsolve = False
 
     def _declare_options(self):
         """
@@ -88,11 +90,9 @@ class BoundsEnforceLS(NonlinearSolver):
 
         # Remove unused options from base options here, so that users
         # attempting to set them will get KeyErrors.
-        opt.undeclare("atol")
-        opt.undeclare("rtol")
-        opt.undeclare("maxiter")
-        opt.undeclare("err_on_maxiter")    # Deprecated option.
-        opt.undeclare("err_on_non_converge")
+        # "err_on_maxiter" is a deprecated option
+        for unused_option in ("atol", "rtol", "maxiter", "err_on_maxiter", "err_on_non_converge"):
+            opt.undeclare(unused_option)
 
     def _solve(self):
         """
@@ -135,7 +135,7 @@ class BoundsEnforceLS(NonlinearSolver):
         self._mpi_print(self._iter_count, norm, norm / norm0)
 
 
-class ArmijoGoldsteinLS(NonlinearSolver):
+class ArmijoGoldsteinLS(LinesearchSolver):
     """
     Backtracking line search that terminates using the Armijo-Goldstein condition..
 
@@ -160,9 +160,6 @@ class ArmijoGoldsteinLS(NonlinearSolver):
             Options dictionary.
         """
         super(ArmijoGoldsteinLS, self).__init__(**kwargs)
-
-        # Parent solver sets this to control whether to solve subsystems.
-        self._do_subsolve = False
 
         self._analysis_error_raised = False
 
@@ -284,9 +281,8 @@ class ArmijoGoldsteinLS(NonlinearSolver):
         Run the iterative solver.
         """
         maxiter = self.options['maxiter']
-        atol = self.options['atol']
-        rtol = self.options['rtol']
-        c = self.options['c']
+        c1 = self.options['c']
+        rho = self.options['rho']
 
         system = self._system
         u = system._outputs
@@ -298,13 +294,12 @@ class ArmijoGoldsteinLS(NonlinearSolver):
 
         # Further backtracking if needed.
         while (self._iter_count < maxiter and
-               ((norm > norm0 - c * self.alpha * norm0) or self._analysis_error_raised)):
+               ((norm > norm0 - c1 * self.alpha * norm0) or self._analysis_error_raised)):
             with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
 
-                u.add_scal_vec(-self.alpha, du)
+                u.add_scal_vec(self.alpha * (rho - 1), du)  # step to the new point on line search
                 if self._iter_count > 0:
-                    self.alpha *= self.options['rho']
-                u.add_scal_vec(self.alpha, du)
+                    self.alpha *= rho  # reduce step length
 
                 cache = self._solver_info.save_cache()
 
