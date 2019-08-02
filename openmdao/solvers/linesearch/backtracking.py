@@ -163,6 +163,9 @@ class ArmijoGoldsteinLS(LinesearchSolver):
 
         self._analysis_error_raised = False
 
+    def _line_search_objective(self):
+        return self._iter_get_norm()
+
     def _iter_initialize(self):
         """
         Perform any necessary pre-processing operations.
@@ -175,33 +178,35 @@ class ArmijoGoldsteinLS(LinesearchSolver):
             error at the first iteration.
         """
         system = self._system
-        self.alpha = self.options['alpha']
+        self.alpha = alpha = self.options['alpha']
 
         u = system._outputs
         du = system._vectors['output']['linear']
 
         self._run_apply()
-        norm0 = self._iter_get_norm()
-        if norm0 == 0.0:
-            norm0 = 1.0
+        phi0 = self._line_search_objective()
+        if phi0 == 0.0:
+            phi0 = 1.0
+        self._phi0 = phi0
 
-        u.add_scal_vec(self.alpha, du)
+        # Initial step length based on the input step length parameter
+        u.add_scal_vec(alpha, du)
 
         if self.options['print_bound_enforce']:
             _print_violations(u, system._lower_bounds, system._upper_bounds)
 
         if self.options['bound_enforcement'] == 'vector':
-            u._enforce_bounds_vector(du, self.alpha, system._lower_bounds, system._upper_bounds)
+            u._enforce_bounds_vector(du, alpha, system._lower_bounds, system._upper_bounds)
         elif self.options['bound_enforcement'] == 'scalar':
-            u._enforce_bounds_scalar(du, self.alpha, system._lower_bounds, system._upper_bounds)
+            u._enforce_bounds_scalar(du, alpha, system._lower_bounds, system._upper_bounds)
         elif self.options['bound_enforcement'] == 'wall':
-            u._enforce_bounds_wall(du, self.alpha, system._lower_bounds, system._upper_bounds)
+            u._enforce_bounds_wall(du, alpha, system._lower_bounds, system._upper_bounds)
 
         try:
             cache = self._solver_info.save_cache()
 
             self._run_apply()
-            norm = self._iter_get_norm()
+            phi = self._line_search_objective()
 
         except AnalysisError as err:
             self._solver_info.restore_cache(cache)
@@ -212,9 +217,9 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                 exc = sys.exc_info()
                 reraise(*exc)
 
-            norm = np.nan
+            phi = np.nan
 
-        return norm0, norm
+        return phi
 
     def _declare_options(self):
         """
@@ -288,17 +293,17 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         du = system._vectors['output']['linear']
 
         self._iter_count = 0
-        norm0, norm = self._iter_initialize()
-        self._norm0 = norm0
+        phi = self._iter_initialize()
+        phi0 = self._phi0
 
         # Further backtracking if needed.
         while (self._iter_count < maxiter and
-               ((norm > norm0 - c1 * self.alpha * norm0) or self._analysis_error_raised)):
+               ((phi > phi0 - c1 * self.alpha * phi0) or self._analysis_error_raised)):
             with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
 
                 u.add_scal_vec(self.alpha * (rho - 1), du)  # step to the new point on line search
                 if self._iter_count > 0:
-                    self.alpha *= rho  # reduce step length
+                    self.alpha *= rho  # reduce step length parameter
 
                 cache = self._solver_info.save_cache()
 
@@ -306,13 +311,13 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                     self._single_iteration()
                     self._iter_count += 1
 
-                    norm = self._iter_get_norm()
+                    phi = self._line_search_objective()
 
                     # With solvers, we want to report the norm AFTER
                     # the iter_execute call, but the i_e call needs to
                     # be wrapped in the with for stack purposes.
-                    rec.abs = norm
-                    rec.rel = norm / norm0
+                    rec.abs = phi
+                    rec.rel = phi / phi0
 
                 except AnalysisError as err:
                     self._solver_info.restore_cache(cache)
@@ -328,4 +333,4 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                         reraise(*exc)
 
             # self._mpi_print(self._iter_count, norm, norm / norm0)
-            self._mpi_print(self._iter_count, norm, self.alpha)
+            self._mpi_print(self._iter_count, phi, self.alpha)
