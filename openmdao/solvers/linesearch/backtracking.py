@@ -42,7 +42,14 @@ def _print_violations(unknowns, lower, upper):
 
 
 class LinesearchSolver(NonlinearSolver):
+    """
+    Base class for line search solvers.
 
+    Attributes
+    ----------
+    _do_subsolve : bool
+        Dictionary holding input and output vectors at start of iteration, if requested.
+    """
     def __init__(self, **kwargs):
         """
         Initialize all attributes.
@@ -290,7 +297,6 @@ class ArmijoGoldsteinLS(LinesearchSolver):
 
         system = self._system
         u = system._outputs
-        # du = DummyVector(system._vectors['output']['linear'])
         du = system._vectors['output']['linear']
 
         self._iter_count = 0
@@ -300,12 +306,9 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         # Further backtracking if needed.
         while (self._iter_count < maxiter and
                ((phi > phi0 - c1 * self.alpha * phi0) or self._analysis_error_raised)):
-            print('|||', self._iter_count, phi-phi0, c1 * self.alpha * phi0)
+
             with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
 
-                # u.add_scal_vec(self.alpha * (rho - 1), du)  # step to the new point on line search
-                # if self._iter_count > 0:
-                #     self.alpha *= rho  # reduce step length parameter
                 u.add_scal_vec(-self.alpha, du)
 
                 if self._iter_count > 0:
@@ -340,27 +343,3 @@ class ArmijoGoldsteinLS(LinesearchSolver):
 
             # self._mpi_print(self._iter_count, norm, norm / norm0)
             self._mpi_print(self._iter_count, phi, self.alpha)
-
-
-class DummyVector(object):
-
-    def __init__(self, vec):
-        self._data = vec._data.copy()
-        if vec._under_complex_step and vec._cplx_data is not None:
-            self._cplx_data = vec._cplx_data.copy()
-        else:
-            self._cplx_data = None
-
-    def __str__(self):
-        """
-        Return a string representation of the Vector object.
-
-        Returns
-        -------
-        str
-            String rep of this object.
-        """
-        try:
-            return str(self._data)
-        except Exception as err:
-            return "<error during call to Vector.__str__>: %s" % err

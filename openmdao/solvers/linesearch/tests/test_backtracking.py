@@ -908,10 +908,6 @@ class TestFeatureLineSearch(unittest.TestCase):
         top['comp.z'] = 1.6
         top.run_model()
 
-        print(top['comp.z'][0])
-        print(top['comp.z'][1])
-        print(top['comp.z'][2])
-
     def test_feature_print_bound_enforce(self):
         import numpy as np
 
@@ -1027,10 +1023,6 @@ class TestFeatureLineSearch(unittest.TestCase):
         top['comp.y'] = 0.
         top['comp.z'] = 1.6
         top.run_model()
-
-        print(top['comp.z'][0])
-        print(top['comp.z'][1])
-        print(top['comp.z'][2])
 
     def test_feature_armijo_print_bound_enforce(self):
         import numpy as np

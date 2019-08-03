@@ -123,7 +123,7 @@ class ImplCompTwoStatesArrays(om.ImplicitComponent):
         self.add_input('x', np.zeros((3, 1)))
         self.add_output('y', np.zeros((3, 1)))
         self.add_output('z', 2.0*np.ones((3, 1)), lower=1.5,
-            upper=np.array([2.6, 2.5, 2.65]).reshape((3,1)))
+                        upper=np.array([2.6, 2.5, 2.65]).reshape((3, 1)))
 
         self.maxiter = 10
         self.atol = 1.0e-12
