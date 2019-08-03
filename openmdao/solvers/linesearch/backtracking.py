@@ -164,7 +164,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         self._analysis_error_raised = False
 
     def _line_search_objective(self):
-        return self._iter_get_norm()
+        return 0.5 * self._iter_get_norm()**2
 
     def _iter_initialize(self):
         """
@@ -292,6 +292,9 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         u = system._outputs
         du = system._vectors['output']['linear']
 
+        print('u', u,)
+        print('du', du)
+
         self._iter_count = 0
         phi = self._iter_initialize()
         phi0 = self._phi0
@@ -333,4 +336,5 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                         reraise(*exc)
 
             # self._mpi_print(self._iter_count, norm, norm / norm0)
+            print('u', u)
             self._mpi_print(self._iter_count, phi, self.alpha)
