@@ -171,7 +171,15 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         self._analysis_error_raised = False
 
     def _line_search_objective(self):
-        return 0.5 * self._iter_get_norm()**2
+        """
+        Calculate the objective function of the line search
+
+        Returns
+        -------
+        float
+            Line search objective (residual norm).
+        """
+        return self._iter_get_norm()
 
     def _iter_initialize(self):
         """
@@ -312,7 +320,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                 u.add_scal_vec(-self.alpha, du)
 
                 if self._iter_count > 0:
-                    self.alpha *= self.options['rho']
+                    self.alpha *= rho
                 u.add_scal_vec(self.alpha, du)
                 cache = self._solver_info.save_cache()
 
