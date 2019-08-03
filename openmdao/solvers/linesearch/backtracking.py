@@ -290,10 +290,8 @@ class ArmijoGoldsteinLS(LinesearchSolver):
 
         system = self._system
         u = system._outputs
+        # du = DummyVector(system._vectors['output']['linear'])
         du = system._vectors['output']['linear']
-
-        print('u', u,)
-        print('du', du)
 
         self._iter_count = 0
         phi = self._iter_initialize()
@@ -302,12 +300,17 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         # Further backtracking if needed.
         while (self._iter_count < maxiter and
                ((phi > phi0 - c1 * self.alpha * phi0) or self._analysis_error_raised)):
+            print('|||', self._iter_count, phi-phi0, c1 * self.alpha * phi0)
             with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
 
-                u.add_scal_vec(self.alpha * (rho - 1), du)  # step to the new point on line search
-                if self._iter_count > 0:
-                    self.alpha *= rho  # reduce step length parameter
+                # u.add_scal_vec(self.alpha * (rho - 1), du)  # step to the new point on line search
+                # if self._iter_count > 0:
+                #     self.alpha *= rho  # reduce step length parameter
+                u.add_scal_vec(-self.alpha, du)
 
+                if self._iter_count > 0:
+                    self.alpha *= self.options['rho']
+                u.add_scal_vec(self.alpha, du)
                 cache = self._solver_info.save_cache()
 
                 try:
@@ -336,5 +339,28 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                         reraise(*exc)
 
             # self._mpi_print(self._iter_count, norm, norm / norm0)
-            print('u', u)
             self._mpi_print(self._iter_count, phi, self.alpha)
+
+
+class DummyVector(object):
+
+    def __init__(self, vec):
+        self._data = vec._data.copy()
+        if vec._under_complex_step and vec._cplx_data is not None:
+            self._cplx_data = vec._cplx_data.copy()
+        else:
+            self._cplx_data = None
+
+    def __str__(self):
+        """
+        Return a string representation of the Vector object.
+
+        Returns
+        -------
+        str
+            String rep of this object.
+        """
+        try:
+            return str(self._data)
+        except Exception as err:
+            return "<error during call to Vector.__str__>: %s" % err
