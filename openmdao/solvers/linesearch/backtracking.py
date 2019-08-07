@@ -402,3 +402,96 @@ class ArmijoGoldsteinLS(LinesearchSolver):
 
             # self._mpi_print(self._iter_count, norm, norm / norm0)
             self._mpi_print(self._iter_count, phi, self.alpha)
+
+
+class FakeVector(object):
+
+    def __init__(self, _data):
+        self._data = _data
+
+
+class ScipyLN(LinesearchSolver):
+
+    def _declare_options(self):
+        """
+        Declare options before kwargs are processed in the init method.
+        """
+        super(ScipyLN, self)._declare_options()
+        opt = self.options
+        opt['maxiter'] = 5
+        opt.declare('c', default=0.1, lower=0.0, desc="Slope parameter for line of sufficient "
+                    "decrease. The larger the step, the more decrease is required to terminate the "
+                    "line search.")
+        opt.declare('c2', default=0.01, lower=0.0, desc="Wolfe II constant.")
+
+    def _solve(self):
+        from scipy.optimize import line_search
+
+        self._iter_count = 0
+        system = self._system
+        u = system._outputs
+
+        u_vals = u._data.copy()
+        dphi0 = self._dphi(None)
+
+        print(dphi0, u_vals)
+
+        options = self.options
+        result = line_search(self._line_search_objective, self._dphi, u_vals, dphi0,
+                             gfk=dphi0,
+                             old_fval=None, old_old_fval=None,
+                             args=(), c1=options['c'], c2=options['c2'], amax=None,
+                             extra_condition=None, maxiter=options['maxiter'])
+
+    def _single_iteration(self):
+        """
+        Perform the operations in the iteration loop.
+        """
+
+    def _iter_initialize(self):
+        pass
+
+    def _line_search_objective(self, x, *args):
+        """
+        Calculate the objective function of the line search.
+
+        Input arguments are in the form needed by SciPy.
+
+        Parameters
+        ----------
+        x : ndarray
+            Vector of unknowns.
+        *args : tuple
+            Additional arguments passed to objective function.
+
+        Returns
+        -------
+        float
+            Line search objective (residual norm).
+        """
+        system = self._system
+        u = system._outputs
+
+        u.set_vec(FakeVector(x))
+        self._iter_count += 1
+        self._single_iteration()
+        return 0.5 * self._iter_get_norm()**2
+
+    def _dphi(self, x, *args):
+        """
+
+        Derivative of
+
+        Parameters
+        ----------
+        x : ndarray
+            Vector of unknowns.
+        *args : tuple
+            Additional arguments passed to objective function.
+
+        Returns
+        -------
+
+        """
+        return self._system._residuals._data
+
