@@ -404,15 +404,17 @@ class ArmijoGoldsteinLS(LinesearchSolver):
             self._mpi_print(self._iter_count, phi, self.alpha)
 
 
-class ScipyLN(LinesearchSolver):
+class ScipyLS(LinesearchSolver):
+
+    SOLVER = 'LS: SCIPY'
 
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
         """
-        super(ScipyLN, self)._declare_options()
+        super(ScipyLS, self)._declare_options()
         opt = self.options
-        opt['maxiter'] = 5
+        opt['maxiter'] = 8
         opt.declare('c', default=0.0001, lower=0.0, upper=1.0,
                     desc="Slope parameter for line of sufficient "
                     "decrease. The larger the step, the more decrease is required to terminate the "
@@ -420,7 +422,7 @@ class ScipyLN(LinesearchSolver):
         opt.declare('c2', default=0.9, lower=0.0, desc="Wolfe II constant.")
         opt.declare('amax', default=None, desc='Maximum step size. If set to None, the step size '
                     'is not limited. In order to enforce bounds this value can be reduced in each '
-                    'line search')
+                    'line search.')
 
     def _solve(self):
         """
@@ -432,21 +434,20 @@ class ScipyLN(LinesearchSolver):
         system = self._system
         u = system._outputs
 
-        u_vals = u._data.copy()
+        u_vals0 = u._data.copy()
         dphi0 = self._get_dphi(None)
         options = self.options
 
-        # self._iter_initialize()
-        phi0 = self._phi0 = self._line_search_objective()  # FIXME should not be here
-        self._alpha = 1.0
+        self._iter_initialize()
+        du_vals = system._vectors['output']['linear']._data.copy()  # Newton step
 
         with Recording(self.__class__.__name__, self._iter_count, self) as rec:
             # alpha, fc, gc, new_fval, old_favl, new_slope
-            result = line_search(self._call, myfprime=self._get_dphi, xk=u_vals, pk=dphi0,
+            result = line_search(self._call, myfprime=self._get_dphi, xk=u_vals0, pk=du_vals,
                                  gfk=dphi0,
-                                 old_fval=phi0, old_old_fval=None,
+                                 old_fval=self._phi0, old_old_fval=None,
                                  args=(rec,), c1=options['c'], c2=options['c2'],
-                                 amax=options['amax'],
+                                 amax=self._amax,
                                  extra_condition=self._extra_condition, maxiter=options['maxiter'])
             converged = result[0] is not None
             print('RESULT', result)
@@ -483,6 +484,33 @@ class ScipyLN(LinesearchSolver):
         """
         Perform the operations in the iteration loop.
         """
+        self._analysis_error_raised = False
+        system = self._system
+
+        # Hybrid newton support.
+        if self._do_subsolve and self._iter_count > 0:
+            self._solver_info.append_solver()
+
+            try:
+                cache = self._solver_info.save_cache()
+                self._gs_iter()
+                self._run_apply()
+
+            except AnalysisError as err:
+                self._solver_info.restore_cache(cache)
+
+                if self.options['retry_on_analysis_error']:
+                    self._analysis_error_raised = True
+
+                else:
+                    exc = sys.exc_info()
+                    reraise(*exc)
+
+            finally:
+                self._solver_info.pop()
+
+        else:
+            self._run_apply()
 
     def _iter_initialize(self):
         """
@@ -496,7 +524,8 @@ class ScipyLN(LinesearchSolver):
             error at the first iteration.
         """
         system = self._system
-        self.alpha = alpha = 1.0
+        options = self.options
+        self._alpha = alpha = 1.0
 
         u = system._outputs
         du = system._vectors['output']['linear']  # Newton step
@@ -506,20 +535,22 @@ class ScipyLN(LinesearchSolver):
         if phi0 == 0.0:
             phi0 = 1.0
         self._phi0 = phi0
-        # From definition of Newton's method one full step should drive the linearized residuals
-        # to 0, hence the directional derivative is equal to the initial function value.
-        self._dir_derivative = -phi0
 
         # Initial step length based on the input step length parameter
         u.add_scal_vec(alpha, du)
 
         self._enforce_bounds(step=du, alpha=alpha)
 
+        if options['amax'] is not None:
+            self._amax = min(options['amax'], 1.0)
+        else:
+            self._amax = 1.0
+
         try:
             cache = self._solver_info.save_cache()
 
             self._run_apply()
-            phi = self._line_search_objective()
+            phi = self._phi0 = self._line_search_objective()
 
         except AnalysisError as err:
             self._solver_info.restore_cache(cache)
@@ -602,7 +633,7 @@ class ScipyLN(LinesearchSolver):
                 exc = sys.exc_info()
                 reraise(*exc)
 
-        self._mpi_print(self._iter_count, phi, self._alpha)
+        self._mpi_print(self._iter_count, rec.abs, rec.rel)
         return phi
 
     def _get_dphi(self, x, *args):
