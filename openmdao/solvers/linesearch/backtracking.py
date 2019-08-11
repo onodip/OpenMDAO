@@ -404,12 +404,6 @@ class ArmijoGoldsteinLS(LinesearchSolver):
             self._mpi_print(self._iter_count, phi, self.alpha)
 
 
-class FakeVector(object):
-
-    def __init__(self, _data):
-        self._data = _data
-
-
 class ScipyLN(LinesearchSolver):
 
     def _declare_options(self):
@@ -424,9 +418,14 @@ class ScipyLN(LinesearchSolver):
                     "decrease. The larger the step, the more decrease is required to terminate the "
                     "line search.")
         opt.declare('c2', default=0.9, lower=0.0, desc="Wolfe II constant.")
-        opt.declare('amax', default=None, desc='Maximum step size.')
+        opt.declare('amax', default=None, desc='Maximum step size. If set to None, the step size '
+                    'is not limited. In order to enforce bounds this value can be reduced in each '
+                    'line search')
 
     def _solve(self):
+        """
+        Run the SciPy line search solver.
+        """
         from scipy.optimize import line_search
 
         self._iter_count = 0
@@ -434,7 +433,7 @@ class ScipyLN(LinesearchSolver):
         u = system._outputs
 
         u_vals = u._data.copy()
-        dphi0 = self._dphi(None)
+        dphi0 = self._get_dphi(None)
         options = self.options
 
         # self._iter_initialize()
@@ -443,17 +442,42 @@ class ScipyLN(LinesearchSolver):
 
         with Recording(self.__class__.__name__, self._iter_count, self) as rec:
             # alpha, fc, gc, new_fval, old_favl, new_slope
-            result = line_search(self._call, self._dphi, u_vals, dphi0,
+            result = line_search(self._call, myfprime=self._get_dphi, xk=u_vals, pk=dphi0,
                                  gfk=dphi0,
                                  old_fval=phi0, old_old_fval=None,
                                  args=(rec,), c1=options['c'], c2=options['c2'],
                                  amax=options['amax'],
-                                 extra_condition=None, maxiter=options['maxiter'])
-            print('RE5ULT', result)
+                                 extra_condition=self._extra_condition, maxiter=options['maxiter'])
+            converged = result[0] is not None
+            print('RESULT', result)
 
     def _extra_condition(self, alpha, x, f, g):
-        self._alpha = alpha
-        return True
+        """
+        Continuation condition.
+
+        The step length parameter of the class is also updated here.
+
+        Parameters
+        ----------
+        alpha : float
+            Proposed step length parameter
+        x : ndarray
+            Vector of unknowns.
+        f : float
+            Line search objective.
+        g : ndarray
+            Gradient vector.
+
+        Returns
+        -------
+        bool
+            If the callable returns False for the step length, the algorithm will continue with new
+            iterates.
+        """
+        condition = True
+        if condition:  # If the current alpha will be rejected, it does not need to be updated.
+            self._alpha = alpha
+        return condition
 
     def _single_iteration(self):
         """
@@ -511,8 +535,16 @@ class ScipyLN(LinesearchSolver):
         return phi
 
     def _line_search_objective(self):
-        """
+        r"""
         Calculate the objective function of the line search.
+
+        Th objective is chosen as:
+
+        .. math::
+
+           \Phi(u) = \frac{1}{2} ||r(u)||^2
+
+        This way the gradient vector equals to the residuals.
 
         Returns
         -------
@@ -523,7 +555,7 @@ class ScipyLN(LinesearchSolver):
 
     def _call(self, x, rec, *args):
         """
-        Objective is evaluated, and the new values are recorded
+        Objective is evaluated, and the new values are recorded.
 
         Parameters
         ----------
@@ -537,7 +569,7 @@ class ScipyLN(LinesearchSolver):
         Returns
         -------
         float
-            Line search objective
+            Line search objective.
         """
         system = self._system
         u = system._outputs
@@ -573,7 +605,7 @@ class ScipyLN(LinesearchSolver):
         self._mpi_print(self._iter_count, phi, self._alpha)
         return phi
 
-    def _dphi(self, x, *args):
+    def _get_dphi(self, x, *args):
         """
         Derivative of line search objective.
 
@@ -590,3 +622,25 @@ class ScipyLN(LinesearchSolver):
         """
         return self._system._residuals._data
 
+
+class FakeVector(object):
+    """
+    Imitates a :class:openmdao.vectors.vector.Vector.
+
+    Arithmetic operations work on an OpenMDAO vector and this class.
+
+    Attributes
+    ----------
+    _data : ndarray
+        Vector value.
+    """
+    def __init__(self, _data):
+        """
+        The input is passed to a class attribute, so it can be accessed by an OpenDMAO vector.
+
+        Parameters
+        ----------
+        _data : ndarray
+            Vector value.
+        """
+        self._data = _data
