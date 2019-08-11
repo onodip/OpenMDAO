@@ -663,7 +663,12 @@ class ScipyLS(LinesearchSolver):
                 reraise(*exc)
 
         # Calculate alpha from the norm of initial point and step and from the new vector.
-        alpha = (np.linalg.norm(x) - np.linalg.norm(self._u0)) / np.linalg.norm(self._du)
+        try:
+            alpha = (np.linalg.norm(x) - np.linalg.norm(self._u0)) / np.linalg.norm(self._du)
+        except ZeroDivisionError:
+            alpha = np.nan
+
+        self._alpha = alpha
         self._mpi_print(self._iter_count, rec.abs, alpha)
         return phi
 
