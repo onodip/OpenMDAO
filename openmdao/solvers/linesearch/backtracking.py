@@ -444,11 +444,10 @@ class ScipyLS(LinesearchSolver):
         with Recording(self.__class__.__name__, self._iter_count, self) as rec:
             # alpha, fc, gc, new_fval, old_favl, new_slope
             result = line_search(self._call, myfprime=self._get_dphi, xk=u_vals0, pk=du_vals,
-                                 gfk=dphi0,
-                                 old_fval=self._phi0, old_old_fval=None,
-                                 args=(rec,), c1=options['c'], c2=options['c2'],
-                                 amax=self._amax,
+                                 gfk=dphi0, old_fval=self._phi0, old_old_fval=None,
+                                 args=(rec,), c1=options['c'], c2=options['c2'], amax=self._amax,
                                  extra_condition=self._extra_condition, maxiter=options['maxiter'])
+            # If it did not converge , SciPy returns a None for alpha.
             converged = result[0] is not None
 
         iprint = options['iprint']
@@ -467,7 +466,7 @@ class ScipyLS(LinesearchSolver):
                 raise AnalysisError(msg.format(self.SOLVER, self._system.pathname,
                                                self._iter_count))
 
-        # Solver hit maxiter without meeting desired tolerances.
+        # Solver hit maxiter without satisfying the strong Wolfe conditions.
         elif not converged:
             msg = "Solver '{}' on system '{}' failed to converge in {} iterations."
 
