@@ -557,7 +557,7 @@ class TestArmijoGoldsteinLSArrayBounds(unittest.TestCase):
         top.setup()
 
         self.top = top
-        self.ub = np.array([2.6, 2.5, 2.65])
+        self.ub = np.array([[2.6], [2.5], [2.65]])
 
     def test_linesearch_vector_bound_enforcement(self):
         top = self.top
@@ -602,8 +602,7 @@ class TestArmijoGoldsteinLSArrayBounds(unittest.TestCase):
         top['comp.y'] = 0.
         top['comp.z'] = 2.4
         top.run_model()
-        for ind in range(3):
-            assert_rel_error(self, top['comp.z'][ind], [self.ub[ind]], 1e-8)
+        assert_rel_error(self, top['comp.z'], self.ub, 1e-8)
 
     def test_linesearch_wall_bound_enforcement_scalar(self):
         top = self.top
@@ -866,9 +865,7 @@ class TestFeatureLineSearch(unittest.TestCase):
         top['comp.z'] = 2.4
         top.run_model()
 
-        assert_rel_error(self, top['comp.z'][0], [2.6], 1e-8)
-        assert_rel_error(self, top['comp.z'][1], [2.5], 1e-8)
-        assert_rel_error(self, top['comp.z'][2], [2.65], 1e-8)
+        assert_rel_error(self, top['comp.z'], np.array([[2.6], [2.5], [2.65]]), 1e-8)
 
     def test_feature_boundscheck_scalar(self):
         import numpy as np
@@ -977,9 +974,7 @@ class TestFeatureLineSearch(unittest.TestCase):
         top['comp.z'] = 2.4
         top.run_model()
 
-        assert_rel_error(self, top['comp.z'][0], [2.6], 1e-8)
-        assert_rel_error(self, top['comp.z'][1], [2.5], 1e-8)
-        assert_rel_error(self, top['comp.z'][2], [2.65], 1e-8)
+        assert_rel_error(self, top['comp.z'], np.array([[2.6], [2.5], [2.65]]), 1e-8)
 
     def test_feature_armijo_boundscheck_scalar(self):
         import numpy as np
@@ -1068,35 +1063,34 @@ class TestFeatureLineSearch(unittest.TestCase):
 class TestScipyLS(unittest.TestCase):
 
     def test_scipy_ls(self):
-        import numpy as np
-
         import openmdao.api as om
-        from openmdao.test_suite.components.implicit_newton_linesearch import ImplCompTwoStatesArrays
+        from openmdao.solvers.linesearch.tests.test_backtracking import CompAtan
 
-        top = om.Problem()
-        top.model.add_subsystem('px', om.IndepVarComp('x', np.ones((3, 1))))
-        top.model.add_subsystem('comp', ImplCompTwoStatesArrays())
-        top.model.connect('px.x', 'comp.x')
+        prob = om.Problem()
+        model = prob.model
 
-        top.model.nonlinear_solver = om.NewtonSolver()
-        top.model.nonlinear_solver.options['maxiter'] = 10
-        top.model.linear_solver = om.ScipyKrylov()
+        model.add_subsystem('px', om.IndepVarComp('x', -100.0))
+        model.add_subsystem('comp', CompAtan())
 
-        ls = top.model.nonlinear_solver.linesearch = om.ScipyLS(bound_enforcement='vector')
-        ls.options['c'] = 0.0001
-        ls.options['c2'] = 0.9
-        ls.options['maxiter'] = 5
-        ls.options['iprint'] = 2
+        model.connect('px.x', 'comp.x')
 
-        top.setup()
+        prob.setup()
 
-        # Test lower bounds: should go to the lower bound and stall
-        top['px.x'] = 2.0
-        top['comp.y'] = 0.
-        top['comp.z'] = 1.6
-        top.run_model()
+        # Initial value for the state:
+        prob['comp.y'] = 16.0
 
-        assert_rel_error(self, top['comp.z'], np.ones((3, 1)) * 1.5, 1e-8)
+        # You can change the om.NewtonSolver settings after setup is called
+        newton = prob.model.nonlinear_solver = om.NewtonSolver()
+        prob.model.linear_solver = om.DirectSolver()
+        newton.options['iprint'] = 2
+        newton.options['rtol'] = 1e-8
+        newton.options['solve_subsystems'] = True
+
+        newton.linesearch = om.ScipyLS(iprint=2)
+
+        prob.run_model()
+
+        assert_rel_error(self, prob['comp.y'], 19.68734033, 1e-6)
 
 
 if __name__ == "__main__":
