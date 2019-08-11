@@ -145,7 +145,7 @@ class BoundsEnforceLS(LinesearchSolver):
         system = self._system
 
         u = system._outputs
-        du = system._vectors['output']['linear']
+        du = system._vectors['output']['linear']  # Newton step
 
         self._run_apply()
 
@@ -433,15 +433,19 @@ class ScipyLN(LinesearchSolver):
 
         u_vals = u._data.copy()
         dphi0 = self._dphi(None)
-
-        print(dphi0, u_vals)
-
         options = self.options
-        result = line_search(self._line_search_objective, self._dphi, u_vals, dphi0,
-                             gfk=dphi0,
-                             old_fval=None, old_old_fval=None,
-                             args=(), c1=options['c'], c2=options['c2'], amax=None,
-                             extra_condition=None, maxiter=options['maxiter'])
+
+        # self._iter_initialize()
+        phi0 = self._phi0 = self._line_search_objective()  # FIXME should not be here
+
+        with Recording(self.__class__.__name__, self._iter_count, self) as rec:
+            # alpha, fc, gc, new_fval, old_favl, new_slope
+            result = line_search(self._call, self._dphi, u_vals, dphi0,
+                                 gfk=dphi0,
+                                 old_fval=phi0, old_old_fval=None,
+                                 args=(rec,), c1=options['c'], c2=options['c2'], amax=None,
+                                 extra_condition=None, maxiter=options['maxiter'])
+            print('RE5ULT', result)
 
     def _single_iteration(self):
         """
@@ -449,42 +453,125 @@ class ScipyLN(LinesearchSolver):
         """
 
     def _iter_initialize(self):
-        pass
+        """
+        Perform any necessary pre-processing operations.
 
-    def _line_search_objective(self, x, *args):
+        Returns
+        -------
+        float
+            initial error.
+        float
+            error at the first iteration.
+        """
+        system = self._system
+        self.alpha = alpha = 1.0
+
+        u = system._outputs
+        du = system._vectors['output']['linear']  # Newton step
+
+        self._run_apply()
+        phi0 = self._line_search_objective()
+        if phi0 == 0.0:
+            phi0 = 1.0
+        self._phi0 = phi0
+        # From definition of Newton's method one full step should drive the linearized residuals
+        # to 0, hence the directional derivative is equal to the initial function value.
+        self._dir_derivative = -phi0
+
+        # Initial step length based on the input step length parameter
+        u.add_scal_vec(alpha, du)
+
+        self._enforce_bounds(step=du, alpha=alpha)
+
+        try:
+            cache = self._solver_info.save_cache()
+
+            self._run_apply()
+            phi = self._line_search_objective()
+
+        except AnalysisError as err:
+            self._solver_info.restore_cache(cache)
+
+            if self.options['retry_on_analysis_error']:
+                self._analysis_error_raised = True
+            else:
+                exc = sys.exc_info()
+                reraise(*exc)
+
+            phi = np.nan
+
+        return phi
+
+    def _line_search_objective(self):
         """
         Calculate the objective function of the line search.
-
-        Input arguments are in the form needed by SciPy.
-
-        Parameters
-        ----------
-        x : ndarray
-            Vector of unknowns.
-        *args : tuple
-            Additional arguments passed to objective function.
 
         Returns
         -------
         float
             Line search objective (residual norm).
         """
-        system = self._system
-        u = system._outputs
-
-        u.set_vec(FakeVector(x))
-        self._iter_count += 1
-        self._single_iteration()
         return 0.5 * self._iter_get_norm()**2
 
-    def _dphi(self, x, *args):
+    def _call(self, x, rec, *args):
         """
-
-        Derivative of
+        Objective is evaluated, and the new values are recorded
 
         Parameters
         ----------
         x : ndarray
+            Vector of unknowns.
+        rec : <Recording>
+            Recorder.
+        *args : tuple
+            Additional arguments passed to objective function.
+
+        Returns
+        -------
+        float
+            Line search objective
+        """
+        system = self._system
+        u = system._outputs
+
+        u.set_vec(FakeVector(x))
+        cache = self._solver_info.save_cache()
+
+        try:
+            self._single_iteration()
+            self._iter_count += 1
+
+            phi = self._line_search_objective()
+
+            # With solvers, we want to report the norm AFTER
+            # the iter_execute call, but the i_e call needs to
+            # be wrapped in the with for stack purposes.
+            rec.abs = phi
+            rec.rel = phi / self._phi0
+
+        except AnalysisError as err:
+            self._solver_info.restore_cache(cache)
+            self._iter_count += 1
+
+            if self.options['retry_on_analysis_error']:
+                self._analysis_error_raised = True
+                rec.abs = phi = np.nan
+                rec.rel = np.nan
+
+            else:
+                exc = sys.exc_info()
+                reraise(*exc)
+
+        self._mpi_print(self._iter_count, rec.rel, rec.abs)
+        return phi
+
+    def _dphi(self, x, *args):
+        """
+        Derivative of line search objective.
+
+        Parameters
+        ----------
+        x : ndarray or None
             Vector of unknowns.
         *args : tuple
             Additional arguments passed to objective function.
