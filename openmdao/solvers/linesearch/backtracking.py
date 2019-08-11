@@ -419,10 +419,12 @@ class ScipyLN(LinesearchSolver):
         super(ScipyLN, self)._declare_options()
         opt = self.options
         opt['maxiter'] = 5
-        opt.declare('c', default=0.1, lower=0.0, desc="Slope parameter for line of sufficient "
+        opt.declare('c', default=0.0001, lower=0.0, upper=1.0,
+                    desc="Slope parameter for line of sufficient "
                     "decrease. The larger the step, the more decrease is required to terminate the "
                     "line search.")
-        opt.declare('c2', default=0.01, lower=0.0, desc="Wolfe II constant.")
+        opt.declare('c2', default=0.9, lower=0.0, desc="Wolfe II constant.")
+        opt.declare('amax', default=None, desc='Maximum step size.')
 
     def _solve(self):
         from scipy.optimize import line_search
@@ -437,15 +439,21 @@ class ScipyLN(LinesearchSolver):
 
         # self._iter_initialize()
         phi0 = self._phi0 = self._line_search_objective()  # FIXME should not be here
+        self._alpha = 1.0
 
         with Recording(self.__class__.__name__, self._iter_count, self) as rec:
             # alpha, fc, gc, new_fval, old_favl, new_slope
             result = line_search(self._call, self._dphi, u_vals, dphi0,
                                  gfk=dphi0,
                                  old_fval=phi0, old_old_fval=None,
-                                 args=(rec,), c1=options['c'], c2=options['c2'], amax=None,
+                                 args=(rec,), c1=options['c'], c2=options['c2'],
+                                 amax=options['amax'],
                                  extra_condition=None, maxiter=options['maxiter'])
             print('RE5ULT', result)
+
+    def _extra_condition(self, alpha, x, f, g):
+        self._alpha = alpha
+        return True
 
     def _single_iteration(self):
         """
@@ -562,7 +570,7 @@ class ScipyLN(LinesearchSolver):
                 exc = sys.exc_info()
                 reraise(*exc)
 
-        self._mpi_print(self._iter_count, rec.rel, rec.abs)
+        self._mpi_print(self._iter_count, phi, self._alpha)
         return phi
 
     def _dphi(self, x, *args):
