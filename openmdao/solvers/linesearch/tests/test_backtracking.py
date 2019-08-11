@@ -1077,7 +1077,7 @@ class TestScipyLS(unittest.TestCase):
         prob.setup()
 
         # Initial value for the state:
-        prob['comp.y'] = 16.0
+        prob['comp.y'] = 18.0
 
         # You can change the om.NewtonSolver settings after setup is called
         newton = prob.model.nonlinear_solver = om.NewtonSolver()
@@ -1086,7 +1086,7 @@ class TestScipyLS(unittest.TestCase):
         newton.options['rtol'] = 1e-8
         newton.options['solve_subsystems'] = True
 
-        newton.linesearch = om.ScipyLS(iprint=2)
+        newton.linesearch = om.ScipyLS(iprint=2, c=0.1, c2=0.0)
 
         prob.run_model()
 

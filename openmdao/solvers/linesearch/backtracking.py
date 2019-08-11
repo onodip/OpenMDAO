@@ -278,7 +278,6 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         Perform the operations in the iteration loop.
         """
         self._analysis_error_raised = False
-        system = self._system
 
         # Hybrid newton support.
         if self._do_subsolve and self._iter_count > 0:
@@ -434,12 +433,12 @@ class ScipyLS(LinesearchSolver):
         system = self._system
         u = system._outputs
 
-        u_vals0 = u._data.copy()
-        dphi0 = self._get_dphi(None)
+        self._u0 = u_vals0 = u._data.copy()
+        dphi0 = self._get_dphi()
         options = self.options
 
         self._iter_initialize()
-        du_vals = system._vectors['output']['linear']._data.copy()  # Newton step
+        self._du = du_vals = system._vectors['output']['linear']._data.copy()  # Newton step
 
         with Recording(self.__class__.__name__, self._iter_count, self) as rec:
             # alpha, fc, gc, new_fval, old_favl, new_slope
@@ -447,8 +446,9 @@ class ScipyLS(LinesearchSolver):
                                  gfk=dphi0, old_fval=self._phi0, old_old_fval=None,
                                  args=(rec,), c1=options['c'], c2=options['c2'], amax=self._amax,
                                  extra_condition=self._extra_condition, maxiter=options['maxiter'])
-            # If it did not converge , SciPy returns a None for alpha.
-            converged = result[0] is not None
+
+        # If it did not converge , SciPy returns a None for alpha.
+        converged = result[0] is not None
 
         iprint = options['iprint']
         prefix = self._solver_info.prefix + self.SOLVER + ': '
@@ -508,17 +508,13 @@ class ScipyLS(LinesearchSolver):
             If the callable returns False for the step length, the algorithm will continue with new
             iterates.
         """
-        condition = True
-        if condition:  # If the current alpha will be rejected, it does not need to be updated.
-            self._alpha = alpha
-        return condition
+        return True
 
     def _single_iteration(self):
         """
         Perform the operations in the iteration loop.
         """
         self._analysis_error_raised = False
-        system = self._system
 
         # Hybrid newton support.
         if self._do_subsolve and self._iter_count > 0:
@@ -666,23 +662,24 @@ class ScipyLS(LinesearchSolver):
                 exc = sys.exc_info()
                 reraise(*exc)
 
-        self._mpi_print(self._iter_count, rec.abs, rec.rel)
+        # Calculate alpha from the norm of initial point and step and from the new vector.
+        alpha = (np.linalg.norm(x) - np.linalg.norm(self._u0)) / np.linalg.norm(self._du)
+        self._mpi_print(self._iter_count, rec.abs, alpha)
         return phi
 
-    def _get_dphi(self, x, *args):
+    def _get_dphi(self, *args):
         """
         Derivative of line search objective.
 
         Parameters
         ----------
-        x : ndarray or None
-            Vector of unknowns.
         *args : tuple
-            Additional arguments passed to objective function.
+            Additional arguments passed to gradient function.
 
         Returns
         -------
-
+        ndarray
+            Gradient of the line search objective.
         """
         return self._system._residuals._data
 
