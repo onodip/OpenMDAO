@@ -450,7 +450,41 @@ class ScipyLS(LinesearchSolver):
                                  amax=self._amax,
                                  extra_condition=self._extra_condition, maxiter=options['maxiter'])
             converged = result[0] is not None
-            print('RESULT', result)
+
+        iprint = options['iprint']
+        prefix = self._solver_info.prefix + self.SOLVER + ': '
+        norm = self._iter_get_norm()
+
+        if np.isinf(norm) or np.isnan(norm):
+            msg = "Solver '{}' on system '{}': residuals contain 'inf' or 'NaN' after {} " + \
+                  "iterations."
+            if iprint > -1:
+                print(prefix + msg.format(self.SOLVER, self._system.pathname,
+                                          self._iter_count))
+
+            # Raise AnalysisError if requested.
+            if self.options['err_on_non_converge']:
+                raise AnalysisError(msg.format(self.SOLVER, self._system.pathname,
+                                               self._iter_count))
+
+        # Solver hit maxiter without meeting desired tolerances.
+        elif not converged:
+            msg = "Solver '{}' on system '{}' failed to converge in {} iterations."
+
+            if iprint > -1:
+                print(prefix + msg.format(self.SOLVER, self._system.pathname,
+                                          self._iter_count))
+
+            # Raise AnalysisError if requested.
+            if self.options['err_on_non_converge']:
+                raise AnalysisError(msg.format(self.SOLVER, self._system.pathname,
+                                               self._iter_count))
+
+        # Solver converged
+        elif iprint == 1:
+            print(prefix + ' Converged in {} iterations'.format(self._iter_count))
+        elif iprint == 2:
+            print(prefix + ' Converged')
 
     def _extra_condition(self, alpha, x, f, g):
         """
